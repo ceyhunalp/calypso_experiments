@@ -6,13 +6,10 @@ runs on the node.
 */
 
 import (
-	"time"
-
 	"errors"
 	"sync"
 
 	"github.com/ceyhunalp/centralized_calypso"
-	"github.com/ceyhunalp/centralized_calypso/protocol"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -25,7 +22,7 @@ func init() {
 	var err error
 	templateID, err = onet.RegisterNewService(template.ServiceName, newService)
 	log.ErrFatal(err)
-	network.RegisterMessage(&storage{})
+	network.RegisterMessages(&storage{}, &WriteRequest{}, &WriteReply{})
 }
 
 // Service is our template-service
@@ -33,7 +30,6 @@ type Service struct {
 	// We need to embed the ServiceProcessor, so that incoming messages
 	// are correctly handled.
 	*onet.ServiceProcessor
-
 	storage *storage
 }
 
@@ -43,39 +39,47 @@ var storageID = []byte("main")
 
 // storage is used to save our data.
 type storage struct {
-	Count int
+	//Count int
+	data []byte
 	sync.Mutex
 }
 
+func (s *Service) Write(req *WriteRequest) {}
+func (s *Service) Read(req *ReadRequest)   {}
+
 // Clock starts a template-protocol and returns the run-time.
-func (s *Service) Clock(req *template.Clock) (*template.ClockReply, error) {
-	s.storage.Lock()
-	s.storage.Count++
-	s.storage.Unlock()
-	s.save()
-	tree := req.Roster.GenerateNaryTreeWithRoot(2, s.ServerIdentity())
-	if tree == nil {
-		return nil, errors.New("couldn't create tree")
-	}
-	pi, err := s.CreateProtocol(protocol.Name, tree)
-	if err != nil {
-		return nil, err
-	}
-	start := time.Now()
-	pi.Start()
-	resp := &template.ClockReply{
-		Children: <-pi.(*protocol.TemplateProtocol).ChildCount,
-	}
-	resp.Time = time.Now().Sub(start).Seconds()
-	return resp, nil
-}
+/*
+ *func (s *Service) Clock(req *template.Clock) (*template.ClockReply, error) {
+ *        s.storage.Lock()
+ *        s.storage.Count++
+ *        s.storage.Unlock()
+ *        s.save()
+ *        tree := req.Roster.GenerateNaryTreeWithRoot(2, s.ServerIdentity())
+ *        if tree == nil {
+ *                return nil, errors.New("couldn't create tree")
+ *        }
+ *        pi, err := s.CreateProtocol(protocol.Name, tree)
+ *        if err != nil {
+ *                return nil, err
+ *        }
+ *        start := time.Now()
+ *        pi.Start()
+ *        resp := &template.ClockReply{
+ *                Children: <-pi.(*protocol.TemplateProtocol).ChildCount,
+ *        }
+ *        resp.Time = time.Now().Sub(start).Seconds()
+ *        return resp, nil
+ *}
+ */
 
 // Count returns the number of instantiations of the protocol.
-func (s *Service) Count(req *template.Count) (*template.CountReply, error) {
-	s.storage.Lock()
-	defer s.storage.Unlock()
-	return &template.CountReply{Count: s.storage.Count}, nil
-}
+/*
+ *func (s *Service) Count(req *template.Count) (*template.CountReply, error) {
+ *        s.storage.Lock()
+ *        defer s.storage.Unlock()
+ *        return &template.CountReply{Count: s.storage.Count}, nil
+ *}
+ */
 
 // NewProtocol is called on all nodes of a Tree (except the root, since it is
 // the one starting the protocol) so it's the Service that will be called to
@@ -125,7 +129,7 @@ func newService(c *onet.Context) (onet.Service, error) {
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
 	}
-	if err := s.RegisterHandlers(s.Clock, s.Count); err != nil {
+	if err := s.RegisterHandlers(s.Write, s.Read); err != nil {
 		return nil, errors.New("Couldn't register messages")
 	}
 	if err := s.tryLoad(); err != nil {
