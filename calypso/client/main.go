@@ -51,15 +51,18 @@ func main() {
 	rSk := suite.Scalar().Pick(suite.RandomStream())
 	rPk := suite.Point().Mul(rSk, nil)
 
-	createWriteTxn(roster, encData, k, c, rPk)
+	wID, err := createWriteTxn(roster, encData, k, c, rPk)
+	if err != nil {
+		log.Errorf("Write transaction failed: %v", err)
+		os.Exit(1)
+	}
+	fmt.Println("Write transaction success:", wID)
+	wID, err = createWriteTxn(roster, encData, k, c, rPk)
+	if err != nil {
+		log.Errorf("Write transaction failed: %v", err)
+		os.Exit(1)
+	}
+	fmt.Println("Write transaction success:", wID)
 
-	//cl := calypso.NewClient()
-	//writeTxnData := util.WriteTxnData{
-	//EncData: encData,
-	//K:       k,
-	//C:       c,
-	//Reader:  rPk,
-	//}
-	//cl.WriteTxn(roster, &writeTxnData)
-
+	//createReadTxn(roster, suite, wID, rSk)
 }
