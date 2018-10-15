@@ -15,9 +15,6 @@ import (
 	//"github.com/dedis/onet/network"
 )
 
-// ServiceName is used for registration on the onet.
-const ServiceName = "Calypso"
-
 // Client is a structure to communicate with the template
 // service
 type Client struct {
@@ -29,7 +26,7 @@ func NewClient() *Client {
 	return &Client{Client: onet.NewClient(cothority.Suite, ServiceName)}
 }
 
-func (c *Client) WriteTxn(r *onet.Roster, wr *WriteRequest) (*WriteReply, error) {
+func (c *Client) Write(r *onet.Roster, wr *WriteRequest) (*WriteReply, error) {
 	dst := r.List[0]
 	log.Lvl3("Sending message to", dst)
 	reply := &WriteReply{}
