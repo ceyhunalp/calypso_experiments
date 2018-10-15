@@ -33,12 +33,10 @@ func CreateReadTxn(roster *onet.Roster, suite schnorr.Suite, wID string, sk kybe
 	defer cl.Close()
 	widBytes, err := hex.DecodeString(wID)
 	if err != nil {
-		//log.Errorf("String decode failed: %v", err)
 		return nil, nil, err
 	}
 	sig, err := schnorr.Sign(suite, sk, widBytes)
 	if err != nil {
-		//log.Errorf("Schnorr signing failed: %v", err)
 		return nil, nil, err
 	}
 	rr := calypso.ReadRequest{

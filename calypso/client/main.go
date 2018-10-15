@@ -45,25 +45,20 @@ func main() {
 		fmt.Println("Erroring out getting server key")
 		os.Exit(1)
 	}
-	//keyStr, err := encoding.PointToStringHex(suite, serverKey[0])
-	//fmt.Println("What I converted:", keyStr)
+
 	// Reader keys
 	rSk := suite.Scalar().Pick(suite.RandomStream())
 	rPk := suite.Point().Mul(rSk, nil)
 
+	// Create write transaction
 	wID, err := CreateWriteTxn(roster, encData, k, c, rPk)
 	if err != nil {
 		log.Errorf("Write transaction failed: %v", err)
 		os.Exit(1)
 	}
 	fmt.Println("Write transaction success:", wID)
-	//wID, err = createWriteTxn(roster, encData, k, c, rPk)
-	//if err != nil {
-	//log.Errorf("Write transaction failed: %v", err)
-	//os.Exit(1)
-	//}
-	//fmt.Println("Write transaction success:", wID)
 
+	// Create read transaction
 	kRead, cRead, err := CreateReadTxn(roster, suite, wID, rSk)
 	if err != nil {
 		log.Errorf("Read transaction failed: %v", err)
@@ -76,4 +71,22 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println(string(recvData[:]))
+
+	// Try to create duplicate write transaction
+	_, err = CreateWriteTxn(roster, encData, k, c, rPk)
+	if err != nil {
+		log.Errorf("Write transaction failed: %v", err)
+		//os.Exit(1)
+	}
+
+	// Create unauthorized reader
+	newSk := suite.Scalar().Pick(suite.RandomStream())
+	_ = suite.Point().Mul(newSk, nil)
+
+	// Create read transaction with unauthorized reader
+	_, _, err = CreateReadTxn(roster, suite, wID, newSk)
+	if err != nil {
+		log.Errorf("Read transaction failed: %v", err)
+		os.Exit(1)
+	}
 }

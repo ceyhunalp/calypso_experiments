@@ -24,11 +24,6 @@ func reencryptData(req *WriteRequest, sk kyber.Scalar, gr kyber.Group) (kyber.Po
 }
 
 func verifyReader(req *ReadRequest, storedWrite *WriteRequest, gr kyber.Group) error {
-	//origWid := hex.EncodeToString(storedWrite.DataHash)
-	//ok := strings.Compare(origWid, req.WriteID)
-	//if ok != 0 {
-	//return errors.New("WriteIDs do not match")
-	//}
 	widBytes, err := hex.DecodeString(req.WriteID)
 	if err != nil {
 		return err
@@ -67,11 +62,6 @@ func (cdb *CalypsoDB) GetWrite(wID string) (*WriteRequest, error) {
 		}
 		result = v
 		return nil
-		//b := tx.Bucket(cdb.bucketName)
-		//v := b.Get(key)
-		//if v == nil {
-		//return errors.New("Key does not exist")
-		//}
 	})
 	return result, err
 }
@@ -81,14 +71,12 @@ func (cdb *CalypsoDB) StoreWrite(req *WriteRequest) (string, error) {
 	if bytes.Compare(dataDigest[:], req.DataHash) != 0 {
 		return "", errors.New("Hashes do not match")
 	}
-	//digestStr := hex.EncodeToString(dataDigest[:])
 	val, err := network.Marshal(req)
 	if err != nil {
 		return "", errors.New("Cannot marshal write request")
 	}
 	err = cdb.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(cdb.bucketName)
-		//b := tx.Bucket([]byte("writetransactions"))
 		v := b.Get(dataDigest[:])
 		if v != nil {
 			return errors.New("Key already exists")

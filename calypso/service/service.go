@@ -6,17 +6,12 @@ runs on the node.
 */
 
 import (
-	//"bytes"
-	//"crypto/sha256"
-	//"encoding/hex"
 	"errors"
-	"sync"
-
-	//bolt "github.com/coreos/bbolt"
 	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"sync"
 )
 
 // ServiceName is used for registration on the onet.
@@ -30,7 +25,6 @@ func init() {
 	var err error
 	templateID, err = onet.RegisterNewService(ServiceName, newCalypsoService)
 	log.ErrFatal(err)
-	//network.RegisterMessages(&WriteRequest{}, &WriteReply{})
 	network.RegisterMessages(&storage{}, &WriteRequest{}, &WriteReply{})
 }
 
@@ -54,50 +48,17 @@ type storage struct {
 }
 
 func (s *Service) Write(req *WriteRequest) (*WriteReply, error) {
-	//sw, err := createStoredData(req, edwards25519.NewBlakeSHA256Ed25519())
-	//if err != nil {
-	//return nil, err
-	//}
-	//s.storage.Lock()
-	//_, exists := s.storage.LoggedWrites[digestStr]
-	//if exists {
-	//log.Lvl3("Data already exists")
-	//s.storage.Unlock()
-	//return nil, errors.New("Data already exists")
-	//}
-
-	//log.Lvl3("Storing new data")
-	//s.storage.LoggedWrites[digestStr] = sw
-	//s.storage.LoggedWrites[digestStr] = req
-	//s.storage.Unlock()
-	//s.save()
-
-	//s.storage.Lock()
-	//defer s.storage.Unlock()
-	//key, err := s.Load(dataDigest[:])
-	//if err != nil {
-	//return nil, errors.New("Load failed cannot check if the key already exists")
-	//}
-	//if key != nil {
-	//return nil, errors.New("Key already exists")
-	//}
-	//err = s.Save(dataDigest[:], val)
-	//if err != nil {
-	//return nil, errors.New("Cannot store data to the database")
-	//}
 	storedKey, err := s.db.StoreWrite(req)
 	if err != nil {
 		return nil, err
 	}
 	resp := &WriteReply{
 		WriteID: storedKey,
-		//WriteID: hex.EncodeToString(dataDigest[:]),
 	}
 	return resp, nil
 }
 
 func (s *Service) Read(req *ReadRequest) (*ReadReply, error) {
-
 	storedWrite, err := s.db.GetWrite(req.WriteID)
 	if err != nil {
 		return nil, err

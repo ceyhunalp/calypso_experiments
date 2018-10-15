@@ -7,15 +7,14 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io"
-	"os"
-
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/log"
+	"io"
+	"os"
 )
 
 const nonceLen = 12
@@ -53,7 +52,6 @@ func aeadOpen(key, ciphertext []byte) ([]byte, error) {
 		return nil, err
 	}
 	log.ErrFatal(err)
-
 	if len(ciphertext) < 12 {
 		return nil, errors.New("ciphertext too short")
 	}
@@ -77,7 +75,6 @@ func ElGamalDecrypt(group kyber.Group, sk kyber.Scalar, K kyber.Point, C kyber.P
 }
 
 func ElGamalEncrypt(group kyber.Group, pk kyber.Point, msg []byte) (K, C kyber.Point, remainder []byte) {
-
 	// Embed the message (or as much of it as will fit) into a curve point.
 	M := group.Point().Embed(msg, random.New())
 	max := group.Point().EmbedLen()
@@ -102,7 +99,6 @@ func SymEncrypt(msg []byte, key []byte) ([]byte, error) {
 }
 
 func GetServerKey(fname *string, group kyber.Group) (kyber.Point, error) {
-	//func GetServerKey(fname *string, group kyber.Group) ([]kyber.Point, error) {
 	var keys []kyber.Point
 	fh, err := os.Open(*fname)
 	defer fh.Close()
