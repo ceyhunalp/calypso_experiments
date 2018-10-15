@@ -20,23 +20,6 @@ import (
 
 const nonceLen = 12
 
-func ElGamalEncrypt(group kyber.Group, pk kyber.Point, msg []byte) (K, C kyber.Point, remainder []byte) {
-
-	// Embed the message (or as much of it as will fit) into a curve point.
-	M := group.Point().Embed(msg, random.New())
-	max := group.Point().EmbedLen()
-	if max > len(msg) {
-		max = len(msg)
-	}
-	remainder = msg[max:]
-	// ElGamal-encrypt the point to produce ciphertext (K,C).
-	k := group.Scalar().Pick(random.New()) // ephemeral private key
-	K = group.Point().Mul(k, nil)          // ephemeral DH public key
-	S := group.Point().Mul(k, pk)          // ephemeral DH shared secret
-	C = S.Add(S, M)                        // message blinded with secret
-	return
-}
-
 func aeadSeal(symKey, data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(symKey)
 	if err != nil {
@@ -77,6 +60,37 @@ func aeadOpen(key, ciphertext []byte) ([]byte, error) {
 	nonce := ciphertext[len(ciphertext)-nonceLen:]
 	out, err := aesgcm.Open(nil, nonce, ciphertext[0:len(ciphertext)-nonceLen], nil)
 	return out, err
+}
+
+func RecoverData(encData []byte, gr kyber.Group, sk kyber.Scalar, k kyber.Point, c kyber.Point) ([]byte, error) {
+	recvKey, err := ElGamalDecrypt(gr, sk, k, c)
+	if err != nil {
+		return nil, err
+	}
+	return aeadOpen(recvKey, encData)
+}
+
+func ElGamalDecrypt(group kyber.Group, sk kyber.Scalar, K kyber.Point, C kyber.Point) ([]byte, error) {
+	S := group.Point().Mul(sk, K)
+	M := group.Point().Sub(C, S)
+	return M.Data()
+}
+
+func ElGamalEncrypt(group kyber.Group, pk kyber.Point, msg []byte) (K, C kyber.Point, remainder []byte) {
+
+	// Embed the message (or as much of it as will fit) into a curve point.
+	M := group.Point().Embed(msg, random.New())
+	max := group.Point().EmbedLen()
+	if max > len(msg) {
+		max = len(msg)
+	}
+	remainder = msg[max:]
+	// ElGamal-encrypt the point to produce ciphertext (K,C).
+	k := group.Scalar().Pick(random.New()) // ephemeral private key
+	K = group.Point().Mul(k, nil)          // ephemeral DH public key
+	S := group.Point().Mul(k, pk)          // ephemeral DH shared secret
+	C = S.Add(S, M)                        // message blinded with secret
+	return
 }
 
 func SymEncrypt(msg []byte, key []byte) ([]byte, error) {

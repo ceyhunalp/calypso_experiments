@@ -37,6 +37,17 @@ func (c *Client) Write(r *onet.Roster, wr *WriteRequest) (*WriteReply, error) {
 	return reply, nil
 }
 
+func (c *Client) Read(r *onet.Roster, rr *ReadRequest) (*ReadReply, error) {
+	dst := r.List[0]
+	log.Lvl3("Sending message to", dst)
+	reply := &ReadReply{}
+	err := c.SendProtobuf(dst, rr, reply)
+	if err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
 /*
  *func (c *Client) Write(r *onet.Roster) (*WriteReply, error) {
  *        dst := r.RandomServerIdentity()

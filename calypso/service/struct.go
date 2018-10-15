@@ -5,50 +5,76 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"github.com/ceyhunalp/centralized_calypso/calypso/util"
 	bolt "github.com/coreos/bbolt"
+	"github.com/dedis/cothority"
 	"github.com/dedis/kyber"
-	//"github.com/dedis/kyber/sign/schnorr"
-	//"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
-	//"strings"
 )
 
-//func verifyReader(gr kyber.Group, sd *StoredWrite, rr *ReadRequest) error {
-//rPk, err := encoding.StringHexToPoint(gr, sd.Reader)
-//origWid := hex.EncodeToString(sd.DataHash)
-//ok := strings.Compare(origWid, rr.WriteID)
-//if ok != 0 {
-//return errors.New("WriteIDs do not match")
-//}
-//widBytes, err := hex.DecodeString(rr.WriteID)
-//ok := schnorr.Verify(gr, rPk, widBytes, sig)
-//return nil
-//}
-
-func storeWrite() {
-
+func reencryptData(req *WriteRequest, sk kyber.Scalar, gr kyber.Group) (kyber.Point, kyber.Point, []byte) {
+	symKey, err := util.ElGamalDecrypt(gr, sk, req.K, req.C)
+	if err != nil {
+		log.Error("ElGamal decryption failed")
+		return nil, nil, nil
+	}
+	return util.ElGamalEncrypt(gr, req.Reader, symKey)
 }
 
-//func createStoredData(req *WriteRequest, gr kyber.Group) (*StoredWrite, error) {
-//sw := &StoredWrite{}
-//kStr, err := encoding.PointToStringHex(gr, req.K)
-//if err != nil {
-//return sw, errors.New("Cannot convert K to string")
-//}
-//cStr, err := encoding.PointToStringHex(gr, req.C)
-//if err != nil {
-//return sw, errors.New("Cannot convert C to string")
-//}
-//readerStr, err := encoding.PointToStringHex(gr, req.Reader)
-//if err != nil {
-//return sw, errors.New("Cannot convert Reader to string")
-//}
-//sw.EncData = req.EncData
-//sw.K = kStr
-//sw.C = cStr
-//sw.Reader = readerStr
-//return sw, nil
-//}
+func verifyReader(req *ReadRequest, storedWrite *WriteRequest, gr kyber.Group) error {
+	//origWid := hex.EncodeToString(storedWrite.DataHash)
+	//ok := strings.Compare(origWid, req.WriteID)
+	//if ok != 0 {
+	//return errors.New("WriteIDs do not match")
+	//}
+	widBytes, err := hex.DecodeString(req.WriteID)
+	if err != nil {
+		return err
+	}
+	ok := bytes.Compare(widBytes, storedWrite.DataHash)
+	if ok != 0 {
+		return errors.New("WriteIDs do not match")
+	}
+	return schnorr.Verify(gr, storedWrite.Reader, widBytes, req.Sig)
+}
+func (cdb *CalypsoDB) getFromTx(tx *bolt.Tx, key []byte) (*WriteRequest, error) {
+	val := tx.Bucket([]byte(cdb.bucketName)).Get(key)
+	if val == nil {
+		return nil, errors.New("Key does not exist")
+	}
+
+	buf := make([]byte, len(val))
+	copy(buf, val)
+	_, wr, err := network.Unmarshal(buf, cothority.Suite)
+	if err != nil {
+		return nil, err
+	}
+	return wr.(*WriteRequest), nil
+}
+
+func (cdb *CalypsoDB) GetWrite(wID string) (*WriteRequest, error) {
+	var result *WriteRequest
+	key, err := hex.DecodeString(wID)
+	if err != nil {
+		return result, err
+	}
+	err = cdb.DB.View(func(tx *bolt.Tx) error {
+		v, err := cdb.getFromTx(tx, key)
+		if err != nil {
+			return err
+		}
+		result = v
+		return nil
+		//b := tx.Bucket(cdb.bucketName)
+		//v := b.Get(key)
+		//if v == nil {
+		//return errors.New("Key does not exist")
+		//}
+	})
+	return result, err
+}
 
 func (cdb *CalypsoDB) StoreWrite(req *WriteRequest) (string, error) {
 	dataDigest := sha256.Sum256(req.EncData)
@@ -108,11 +134,7 @@ type ReadRequest struct {
 	Sig     []byte
 }
 
-type ReadReply struct{}
-
-//type StoredWrite struct {
-//EncData []byte
-//K       string
-//C       string
-//Reader  string
-//}
+type ReadReply struct {
+	K kyber.Point
+	C kyber.Point
+}

@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	//bolt "github.com/coreos/bbolt"
-	//"github.com/dedis/kyber/group/edwards25519"
+	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -30,8 +30,8 @@ func init() {
 	var err error
 	templateID, err = onet.RegisterNewService(ServiceName, newCalypsoService)
 	log.ErrFatal(err)
-	network.RegisterMessages(&WriteRequest{}, &WriteReply{})
-	//network.RegisterMessages(&storage{}, &WriteRequest{}, &WriteReply{})
+	//network.RegisterMessages(&WriteRequest{}, &WriteReply{})
+	network.RegisterMessages(&storage{}, &WriteRequest{}, &WriteReply{})
 }
 
 // Service is our template-service
@@ -39,9 +39,8 @@ type Service struct {
 	// We need to embed the ServiceProcessor, so that incoming messages
 	// are correctly handled.
 	*onet.ServiceProcessor
-	db           *CalypsoDB
-	storageMutex sync.Mutex
-	//storage *storage
+	db      *CalypsoDB
+	storage *storage
 }
 
 // storageID reflects the data we're storing - we could store more
@@ -49,13 +48,10 @@ type Service struct {
 var storageID = []byte("Calypso")
 
 // storage is used to save our data.
-//type storage struct {
-//LoggedWrites map[string]*StoredWrite
-//LoggedWrites map[string]*WriteRequest
-//Db     *bolt.DB
-//Bucket []byte
-//sync.Mutex
-//}
+type storage struct {
+	Suite *edwards25519.SuiteEd25519
+	sync.Mutex
+}
 
 func (s *Service) Write(req *WriteRequest) (*WriteReply, error) {
 	//sw, err := createStoredData(req, edwards25519.NewBlakeSHA256Ed25519())
@@ -100,65 +96,65 @@ func (s *Service) Write(req *WriteRequest) (*WriteReply, error) {
 	return resp, nil
 }
 
-//func (s *Service) Read(req *ReadRequest) (*ReadReply, error) {
-//s.storage.Lock()
-//if sd, ok := s.storage.LoggedWrites[req.WriteID]; ok {
-//_ = verifyReader(edwards25519.NewBlakeSHA256Ed25519(), sd, req.Sig)
+func (s *Service) Read(req *ReadRequest) (*ReadReply, error) {
 
-//} else {
-//log.Lvl3("Data does not exist")
-//s.storage.Unlock()
-//return nil, errors.New("Data does not exist")
-//}
-
-//}
+	storedWrite, err := s.db.GetWrite(req.WriteID)
+	if err != nil {
+		return nil, err
+	}
+	err = verifyReader(req, storedWrite, s.storage.Suite)
+	if err != nil {
+		return nil, err
+	}
+	sk := s.ServerIdentity().GetPrivate()
+	k, c, _ := reencryptData(storedWrite, sk, s.storage.Suite)
+	if k == nil || c == nil {
+		return nil, errors.New("Could not reencrypt symmetric key")
+	}
+	resp := &ReadReply{
+		K: k,
+		C: c,
+	}
+	return resp, nil
+}
 
 // saves all data.
 func (s *Service) save() {
-	//s.storage.Lock()
-	//defer s.storage.Unlock()
-	//err := s.Save(storageID, s.storage)
-	s.storageMutex.Lock()
-	defer s.storageMutex.Unlock()
-	//err := s.Save(storageID, s.storage)
-	//if err != nil
-	//log.Error("Couldn't save data:", err)
-	//}
+	s.storage.Lock()
+	defer s.storage.Unlock()
+	err := s.Save(storageID, s.storage)
+	if err != nil {
+		log.Error("Couldn't save data:", err)
+	}
 }
 
 // Tries to load the configuration and updates the data in the service
 // if it finds a valid config-file.
-//func (s *Service) tryLoad() error {
-//s.storage = &storage{}
-/*
- *defer func() {
- *        if len(s.storage.LoggedWrites) == 0 {
- *                s.storage.LoggedWrites = make(map[string]*WriteRequest)
- *                //s.storage.LoggedWrites = make(map[string]*StoredWrite)
- *        }
- *}()
- */
-//msg, err := s.Load(storageID)
-//log.Lvl3("After calling load")
-//if err != nil {
-//log.Lvl3("Error is not nil")
-//return err
-//}
-//if msg == nil {
-//return nil
-//}
-//var ok bool
-//s.storage, ok = msg.(*storage)
-//log.Lvl3("After mesg")
-//if !ok {
-//return errors.New("Data of wrong type")
-//}
-//log.Lvl3("Before calling add bucket")
-//_, bucket := s.GetAdditionalBucket([]byte("writetransactions"))
-////s.storage.Db = db
-//s.storage.Bucket = bucket
-//return nil
-//}
+func (s *Service) tryLoad() error {
+	s.storage = &storage{}
+	defer func() {
+		if s.storage.Suite == nil {
+			s.storage.Suite = edwards25519.NewBlakeSHA256Ed25519()
+		}
+	}()
+	msg, err := s.Load(storageID)
+	log.Lvl3("After calling load")
+	if err != nil {
+		log.Lvl3("Error is not nil")
+		return err
+	}
+	if msg == nil {
+		return nil
+	}
+	var ok bool
+	s.storage, ok = msg.(*storage)
+	log.Lvl3("After mesg")
+	if !ok {
+		return errors.New("Data of wrong type")
+	}
+	log.Lvl3("Before calling add bucket")
+	return nil
+}
 
 // newService receives the context that holds information about the node it's
 // running on. Saving and loading can be done using the context. The data will
@@ -169,13 +165,12 @@ func newCalypsoService(c *onet.Context) (onet.Service, error) {
 		ServiceProcessor: onet.NewServiceProcessor(c),
 		db:               NewCalypsoDB(db, bucket),
 	}
-	if err := s.RegisterHandlers(s.Write); err != nil {
-		//if err := s.RegisterHandlers(s.Write, s.Read); err != nil {
+	if err := s.RegisterHandlers(s.Write, s.Read); err != nil {
 		return nil, errors.New("Couldn't register messages")
 	}
-	//if err := s.tryLoad(); err != nil {
-	//log.Error(err)
-	//return nil, err
-	//}
+	if err := s.tryLoad(); err != nil {
+		log.Error(err)
+		return nil, err
+	}
 	return s, nil
 }

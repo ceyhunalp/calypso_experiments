@@ -51,18 +51,29 @@ func main() {
 	rSk := suite.Scalar().Pick(suite.RandomStream())
 	rPk := suite.Point().Mul(rSk, nil)
 
-	wID, err := createWriteTxn(roster, encData, k, c, rPk)
+	wID, err := CreateWriteTxn(roster, encData, k, c, rPk)
 	if err != nil {
 		log.Errorf("Write transaction failed: %v", err)
 		os.Exit(1)
 	}
 	fmt.Println("Write transaction success:", wID)
-	wID, err = createWriteTxn(roster, encData, k, c, rPk)
-	if err != nil {
-		log.Errorf("Write transaction failed: %v", err)
-		os.Exit(1)
-	}
-	fmt.Println("Write transaction success:", wID)
+	//wID, err = createWriteTxn(roster, encData, k, c, rPk)
+	//if err != nil {
+	//log.Errorf("Write transaction failed: %v", err)
+	//os.Exit(1)
+	//}
+	//fmt.Println("Write transaction success:", wID)
 
-	//createReadTxn(roster, suite, wID, rSk)
+	kRead, cRead, err := CreateReadTxn(roster, suite, wID, rSk)
+	if err != nil {
+		log.Errorf("Read transaction failed: %v", err)
+		os.Exit(1)
+	}
+
+	recvData, err := util.RecoverData(encData, suite, rSk, kRead, cRead)
+	if err != nil {
+		log.Errorf("Cannot recover data: %v", err)
+		os.Exit(1)
+	}
+	fmt.Println(string(recvData[:]))
 }
