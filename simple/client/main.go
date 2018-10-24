@@ -12,6 +12,8 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -126,9 +128,9 @@ func main() {
 		log.Errorf("Setting up Byzcoin failed: %v", err)
 		os.Exit(1)
 	}
+	baseStr := "On Wisconsin! -- "
 	for i := 0; i < 70; i++ {
-		str := "On Wisconsin!"
-		err = runSimpleCalypso(roster, serverKey, byzd, []byte(str))
+		err = runSimpleCalypso(roster, serverKey, byzd, []byte(strings.Join([]string{baseStr, strconv.Itoa(i + 1)}, "")))
 		if err != nil {
 			log.Errorf("Run SimpleCalypso failed: %v", err)
 		}

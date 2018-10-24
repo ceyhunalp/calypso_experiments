@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	simple "github.com/ceyhunalp/centralized_calypso/simple/service"
+	"github.com/ceyhunalp/centralized_calypso/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/calypso"
@@ -78,7 +79,7 @@ func (byzd *ByzcoinData) WaitProof(id byzcoin.InstanceID, interval time.Duration
 	return byzd.Cl.WaitProof(id, interval, value)
 }
 
-func (byzd *ByzcoinData) AddWriteTransaction(wd *WriteData, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
+func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
 	sWrite := &calypso.SimpleWrite{
 		DataHash: wd.DataHash,
 		K:        wd.K,
@@ -144,7 +145,7 @@ func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddT
 	return byzd.Cl.AddTransactionAndWait(ctx, wait)
 }
 
-func StoreEncryptedData(r *onet.Roster, wd *WriteData) error {
+func StoreEncryptedData(r *onet.Roster, wd *util.WriteData) error {
 	cl := simple.NewClient()
 	defer cl.Close()
 	sr := simple.StoreRequest{

@@ -9,6 +9,8 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"os"
+	"strconv"
+	"strings"
 )
 
 func runCentralizedCalypso(roster *onet.Roster, serverKey kyber.Point, data []byte) error {
@@ -73,11 +75,12 @@ func main() {
 		log.Errorf("Could not get the server key: %v", err)
 		os.Exit(1)
 	}
-	data := []byte("On Wisconsin")
-	err = runCentralizedCalypso(roster, serverKey, data)
-	if err != nil {
-		log.Errorf("Run centralized calypso failed: %v", err)
-		os.Exit(1)
+	baseStr := "On Wisconsin! -- "
+	for i := 0; i < 70; i++ {
+		err = runCentralizedCalypso(roster, serverKey, []byte(strings.Join([]string{baseStr, strconv.Itoa(i + 1)}, "")))
+		if err != nil {
+			log.Errorf("Run CentralizedCalypso failed: %v", err)
+		}
 	}
 	/*
 	 *        // Try to create duplicate write transaction
