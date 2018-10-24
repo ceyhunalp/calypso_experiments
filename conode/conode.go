@@ -17,14 +17,15 @@ import (
 	"path"
 
 	"github.com/dedis/cothority"
+	_ "github.com/dedis/cothority/byzcoin"
+	_ "github.com/dedis/cothority/calypso"
 	"github.com/dedis/onet/app"
 	"github.com/dedis/onet/cfgpath"
 	"github.com/dedis/onet/log"
 	cli "gopkg.in/urfave/cli.v1"
 	// Import your service:
-	//_ "github.com/ceyhunalp/centralized_calypso/byzcoin"
-	//_ "github.com/ceyhunalp/centralized_calypso/service"
-	_ "github.com/ceyhunalp/centralized_calypso/calypso/service"
+	_ "github.com/ceyhunalp/centralized_calypso/centralized/service"
+	_ "github.com/ceyhunalp/centralized_calypso/simple/service"
 	// Here you can import any other needed service for your conode.
 	// For example, if your service needs cosi available in the server
 	// as well, uncomment this:
