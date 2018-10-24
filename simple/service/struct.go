@@ -17,20 +17,45 @@ import (
 	"github.com/dedis/onet/network"
 )
 
-//func reencryptData(wt *calypso.SimpleWrite, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
-func reencryptData(wt *calypso.SimpleWrite, sk kyber.Scalar, gr kyber.Group) (kyber.Point, kyber.Point, error) {
-	//symKey, err := util.ElGamalDecrypt(sk, wt.K, wt.C)
-	symKey, err := util.ElGamalDecrypt(gr, sk, wt.K, wt.C)
+type SimpleCalypsoDB struct {
+	*bolt.DB
+	bucketName []byte
+}
+
+type StoreRequest struct {
+	Data     []byte
+	DataHash []byte
+}
+
+type StoreReply struct {
+	StoredKey string
+}
+
+type DecryptRequest struct {
+	Write *byzcoin.Proof
+	Read  *byzcoin.Proof
+	SCID  skipchain.SkipBlockID
+	Key   string
+	Sig   []byte
+}
+
+type DecryptReply struct {
+	Data     []byte
+	DataHash []byte
+	K        kyber.Point
+	C        kyber.Point
+}
+
+func reencryptData(wt *calypso.SimpleWrite, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
+	symKey, err := util.ElGamalDecrypt(sk, wt.K, wt.C)
 	if err != nil {
 		return nil, nil, err
 	}
-	//k, c, _ := util.ElGamalEncrypt(wt.Reader, symKey)
-	k, c, _ := util.ElGamalEncrypt(gr, wt.Reader, symKey)
+	k, c, _ := util.ElGamalEncrypt(wt.Reader, symKey)
 	return k, c, nil
 }
 
-//func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar) (*calypso.SimpleWrite, error) {
-func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar, gr kyber.Group) (*calypso.SimpleWrite, error) {
+func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar) (*calypso.SimpleWrite, error) {
 	log.Lvl2("Re-encrypt the key to the public key of the reader")
 
 	var read calypso.Read
@@ -59,22 +84,19 @@ func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kybe
 	if ok != 0 {
 		return nil, errors.New("Keys do not match")
 	}
-	//err = schnorr.Verify(cothority.Suite, write.Reader, keyBytes, req.Sig)
-	err = schnorr.Verify(gr, write.Reader, keyBytes, req.Sig)
+	err = schnorr.Verify(cothority.Suite, write.Reader, keyBytes, req.Sig)
 	if err != nil {
 		return nil, err
 	}
 	return &write, nil
 }
 
-//func getDecryptedData(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar) (*DecryptReply, error) {
-func getDecryptedData(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar, gr kyber.Group) (*DecryptReply, error) {
-	//writeTxn, err := verifyDecryptRequest(req, storedData, sk)
-	writeTxn, err := verifyDecryptRequest(req, storedData, sk, gr)
+func getDecryptedData(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar) (*DecryptReply, error) {
+	writeTxn, err := verifyDecryptRequest(req, storedData, sk)
 	if err != nil {
 		return nil, err
 	}
-	k, c, err := reencryptData(writeTxn, sk, gr)
+	k, c, err := reencryptData(writeTxn, sk)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +122,6 @@ func (sdb *SimpleCalypsoDB) GetStoredData(key string) (*StoreRequest, error) {
 	var result *StoreRequest
 	keyByte, err := hex.DecodeString(key)
 	if err != nil {
-		//return result, err
 		return nil, err
 	}
 	err = sdb.DB.View(func(tx *bolt.Tx) error {
@@ -146,34 +167,4 @@ func NewSimpleCalypsoDB(db *bolt.DB, bn []byte) *SimpleCalypsoDB {
 		DB:         db,
 		bucketName: bn,
 	}
-}
-
-type SimpleCalypsoDB struct {
-	*bolt.DB
-	bucketName []byte
-}
-
-type StoreRequest struct {
-	Data     []byte
-	DataHash []byte
-}
-
-type StoreReply struct {
-	StoredKey string
-}
-
-type DecryptRequest struct {
-	//Sw *SimpleWrite
-	Write *byzcoin.Proof
-	Read  *byzcoin.Proof
-	SCID  skipchain.SkipBlockID
-	Key   string
-	Sig   []byte
-}
-
-type DecryptReply struct {
-	Data     []byte
-	DataHash []byte
-	K        kyber.Point
-	C        kyber.Point
 }

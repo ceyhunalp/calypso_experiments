@@ -14,20 +14,43 @@ import (
 	"github.com/dedis/onet/network"
 )
 
-//func reencryptData(req *WriteRequest, sk kyber.Scalar) (kyber.Point, kyber.Point, []byte) {
-func reencryptData(req *WriteRequest, sk kyber.Scalar, gr kyber.Group) (kyber.Point, kyber.Point, []byte) {
-	//symKey, err := util.ElGamalDecrypt(sk, req.K, req.C)
-	symKey, err := util.ElGamalDecrypt(gr, sk, req.K, req.C)
+type CentralizedCalypsoDB struct {
+	*bolt.DB
+	bucketName []byte
+}
+
+type WriteRequest struct {
+	EncData  []byte
+	DataHash []byte
+	K        kyber.Point
+	C        kyber.Point
+	Reader   kyber.Point
+}
+
+type WriteReply struct {
+	WriteID string
+}
+
+type ReadRequest struct {
+	WriteID string
+	Sig     []byte
+}
+
+type ReadReply struct {
+	K kyber.Point
+	C kyber.Point
+}
+
+func reencryptData(req *WriteRequest, sk kyber.Scalar) (kyber.Point, kyber.Point, []byte) {
+	symKey, err := util.ElGamalDecrypt(sk, req.K, req.C)
 	if err != nil {
 		log.Error("ElGamal decryption failed")
 		return nil, nil, nil
 	}
-	//return util.ElGamalEncrypt(req.Reader, symKey)
-	return util.ElGamalEncrypt(gr, req.Reader, symKey)
+	return util.ElGamalEncrypt(req.Reader, symKey)
 }
 
-//func verifyReader(req *ReadRequest, storedWrite *WriteRequest) error {
-func verifyReader(req *ReadRequest, storedWrite *WriteRequest, gr kyber.Group) error {
+func verifyReader(req *ReadRequest, storedWrite *WriteRequest) error {
 	widBytes, err := hex.DecodeString(req.WriteID)
 	if err != nil {
 		return err
@@ -36,8 +59,7 @@ func verifyReader(req *ReadRequest, storedWrite *WriteRequest, gr kyber.Group) e
 	if ok != 0 {
 		return errors.New("WriteIDs do not match")
 	}
-	return schnorr.Verify(gr, storedWrite.Reader, widBytes, req.Sig)
-	//return schnorr.Verify(cothority.Suite, storedWrite.Reader, widBytes, req.Sig)
+	return schnorr.Verify(cothority.Suite, storedWrite.Reader, widBytes, req.Sig)
 }
 
 func (cdb *CentralizedCalypsoDB) getFromTx(tx *bolt.Tx, key []byte) (*WriteRequest, error) {
@@ -104,31 +126,4 @@ func NewCentralizedCalypsoDB(db *bolt.DB, bn []byte) *CentralizedCalypsoDB {
 		DB:         db,
 		bucketName: bn,
 	}
-}
-
-type CentralizedCalypsoDB struct {
-	*bolt.DB
-	bucketName []byte
-}
-
-type WriteRequest struct {
-	EncData  []byte
-	DataHash []byte
-	K        kyber.Point
-	C        kyber.Point
-	Reader   kyber.Point
-}
-
-type WriteReply struct {
-	WriteID string
-}
-
-type ReadRequest struct {
-	WriteID string
-	Sig     []byte
-}
-
-type ReadReply struct {
-	K kyber.Point
-	C kyber.Point
 }

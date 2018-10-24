@@ -25,7 +25,6 @@ func NewClient() *Client {
 	return &Client{Client: onet.NewClient(cothority.Suite, ServiceName)}
 }
 
-//func (c *Client) Write(dest *network.ServerIdentity, wr *WriteRequest) (*WriteReply, error) {
 func (c *Client) Write(r *onet.Roster, wr *WriteRequest) (*WriteReply, error) {
 	dest := r.List[0]
 	log.Lvl3("Sending message to", dest)
@@ -37,7 +36,6 @@ func (c *Client) Write(r *onet.Roster, wr *WriteRequest) (*WriteReply, error) {
 	return reply, nil
 }
 
-//func (c *Client) Read(dest *network.ServerIdentity, rr *ReadRequest) (*ReadReply, error) {
 func (c *Client) Read(r *onet.Roster, rr *ReadRequest) (*ReadReply, error) {
 	dest := r.List[0]
 	log.Lvl3("Sending message to", dest)

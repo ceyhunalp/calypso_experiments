@@ -7,7 +7,6 @@ runs on the node.
 
 import (
 	"errors"
-	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -43,7 +42,7 @@ var storageID = []byte("CentralizedCalypso")
 
 // storage is used to save our data.
 type storage struct {
-	Suite *edwards25519.SuiteEd25519
+	//Suite *edwards25519.SuiteEd25519
 	sync.Mutex
 }
 
@@ -63,14 +62,12 @@ func (s *Service) Read(req *ReadRequest) (*ReadReply, error) {
 	if err != nil {
 		return nil, err
 	}
-	//err = verifyReader(req, storedWrite)
-	err = verifyReader(req, storedWrite, s.storage.Suite)
+	err = verifyReader(req, storedWrite)
 	if err != nil {
 		return nil, err
 	}
 	sk := s.ServerIdentity().GetPrivate()
-	//k, c, _ := reencryptData(storedWrite, sk)
-	k, c, _ := reencryptData(storedWrite, sk, s.storage.Suite)
+	k, c, _ := reencryptData(storedWrite, sk)
 	if k == nil || c == nil {
 		return nil, errors.New("Could not reencrypt symmetric key")
 	}
@@ -95,11 +92,11 @@ func (s *Service) save() {
 // if it finds a valid config-file.
 func (s *Service) tryLoad() error {
 	s.storage = &storage{}
-	defer func() {
-		if s.storage.Suite == nil {
-			s.storage.Suite = edwards25519.NewBlakeSHA256Ed25519()
-		}
-	}()
+	//defer func() {
+	//if s.storage.Suite == nil {
+	//s.storage.Suite = edwards25519.NewBlakeSHA256Ed25519()
+	//}
+	//}()
 	msg, err := s.Load(storageID)
 	if err != nil {
 		return err

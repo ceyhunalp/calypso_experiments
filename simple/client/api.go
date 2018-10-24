@@ -3,14 +3,13 @@ package main
 import (
 	"encoding/hex"
 	simple "github.com/ceyhunalp/centralized_calypso/simple/service"
-	//"github.com/dedis/cothority"
+	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/calypso"
 	"github.com/dedis/cothority/darc"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/onet"
-	//"github.com/dedis/onet/network"
 	"github.com/dedis/protobuf"
 	"time"
 )
@@ -20,17 +19,14 @@ type TransactionReply struct {
 	byzcoin.InstanceID
 }
 
-//func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*simple.DecryptReply, error) {
-//func (byzd *ByzcoinData) DecryptRequest(dest *network.ServerIdentity, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*simple.DecryptReply, error) {
-func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, suite schnorr.Suite, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*simple.DecryptReply, error) {
+func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*simple.DecryptReply, error) {
 	cl := simple.NewClient()
 	defer cl.Close()
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
 		return nil, err
 	}
-	//sig, err := schnorr.Sign(cothority.Suite, sk, keyBytes)
-	sig, err := schnorr.Sign(suite, sk, keyBytes)
+	sig, err := schnorr.Sign(cothority.Suite, sk, keyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +37,6 @@ func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, suite schnorr.Suite, wrP
 		Key:   key,
 		Sig:   sig,
 	}
-	//return cl.Decrypt(dest, dr)
 	return cl.Decrypt(r, dr)
 }
 
@@ -84,7 +79,6 @@ func (byzd *ByzcoinData) WaitProof(id byzcoin.InstanceID, interval time.Duration
 }
 
 func (byzd *ByzcoinData) AddWriteTransaction(wd *WriteData, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
-	//func (byzd *ByzcoinData) AddWriteTransaction(write *calypso.SimpleWrite, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
 	sWrite := &calypso.SimpleWrite{
 		DataHash: wd.DataHash,
 		K:        wd.K,
@@ -92,7 +86,6 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *WriteData, signer darc.Signer, 
 		Reader:   wd.Reader,
 	}
 	writeBuf, err := protobuf.Encode(sWrite)
-	//writeBuf, err := protobuf.Encode(write)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +118,6 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *WriteData, signer darc.Signer, 
 }
 
 func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddTxResponse, error) {
-	//func (byzd *ByzcoinData) SpawnDarc(signer darc.Signer, controlDarc darc.Darc, spawnDarc darc.Darc, wait int) (*byzcoin.AddTxResponse, error) {
 	darcBuf, err := spawnDarc.ToProto()
 	if err != nil {
 		return nil, err
@@ -133,10 +125,9 @@ func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddT
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: byzcoin.NewInstanceID(byzd.GDarc.GetBaseID()),
-			//InstanceID: byzcoin.NewInstanceID(controlDarc.GetBaseID()),
-			Nonce:  byzcoin.GenNonce(),
-			Index:  0,
-			Length: 1,
+			Nonce:      byzcoin.GenNonce(),
+			Index:      0,
+			Length:     1,
 			Spawn: &byzcoin.Spawn{
 				ContractID: byzcoin.ContractDarcID,
 				Args: []byzcoin.Argument{{
@@ -147,7 +138,6 @@ func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddT
 		}},
 	}
 	err = ctx.Instructions[0].SignBy(byzd.GDarc.GetBaseID(), byzd.Signer)
-	//err = ctx.Instructions[0].SignBy(controlDarc.GetBaseID(), signer)
 	if err != nil {
 		return nil, err
 	}
@@ -155,19 +145,12 @@ func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddT
 }
 
 func StoreEncryptedData(r *onet.Roster, wd *WriteData) error {
-	//func StoreEncryptedData(dest *network.ServerIdentity, wd *WriteData) error {
-	//func StoreEncryptedData(r *onet.Roster, data []byte, digest []byte) (string, error) {
 	cl := simple.NewClient()
 	defer cl.Close()
-	//sr := simple.StoreRequest{
-	//Data:   data,
-	//Digest: digest,
-	//}
 	sr := simple.StoreRequest{
 		Data:     wd.Data,
 		DataHash: wd.DataHash,
 	}
-	//reply, err := cl.StoreData(dest, &sr)
 	reply, err := cl.StoreData(r, &sr)
 	if err != nil {
 		return err

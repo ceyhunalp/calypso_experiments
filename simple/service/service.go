@@ -7,7 +7,6 @@ runs on the node.
 
 import (
 	"errors"
-	"github.com/dedis/kyber/group/edwards25519"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
@@ -43,7 +42,7 @@ var storageID = []byte("SimpleCalypso")
 
 // storage is used to save our data.
 type storage struct {
-	Suite *edwards25519.SuiteEd25519
+	//Suite *edwards25519.SuiteEd25519
 	sync.Mutex
 }
 
@@ -64,8 +63,7 @@ func (s *Service) Decrypt(req *DecryptRequest) (*DecryptReply, error) {
 		return nil, err
 	}
 	sk := s.ServerIdentity().GetPrivate()
-	//return getDecryptedData(req, storedData, sk)
-	return getDecryptedData(req, storedData, sk, s.storage.Suite)
+	return getDecryptedData(req, storedData, sk)
 }
 
 // saves all data.
@@ -85,11 +83,11 @@ func (s *Service) save() {
 func (s *Service) tryLoad() error {
 	log.Print("In tryLoad")
 	s.storage = &storage{}
-	defer func() {
-		if s.storage.Suite == nil {
-			s.storage.Suite = edwards25519.NewBlakeSHA256Ed25519()
-		}
-	}()
+	//defer func() {
+	//if s.storage.Suite == nil {
+	//s.storage.Suite = edwards25519.NewBlakeSHA256Ed25519()
+	//}
+	//}()
 	msg, err := s.Load(storageID)
 	if err != nil {
 		return err

@@ -12,7 +12,6 @@ import (
 	"github.com/dedis/cothority"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
-	//"github.com/dedis/onet/network"
 )
 
 // Client is a structure to communicate with the template

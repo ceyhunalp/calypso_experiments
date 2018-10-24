@@ -1,46 +1,44 @@
 package main
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	centralized "github.com/ceyhunalp/centralized_calypso/centralized/service"
+	"github.com/ceyhunalp/centralized_calypso/util"
+	"github.com/dedis/cothority"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/onet"
 )
 
-//func CreateWriteTxn(dest *network.ServerIdentity, data []byte, k kyber.Point, c kyber.Point, reader kyber.Point) (string, error) {
-func CreateWriteTxn(roster *onet.Roster, data []byte, k kyber.Point, c kyber.Point, reader kyber.Point) (string, error) {
+func CreateWriteTxn(roster *onet.Roster, wd *util.WriteData) (*util.WriteData, error) {
+	//func CreateWriteTxn(roster *onet.Roster, data []byte, k kyber.Point, c kyber.Point, reader kyber.Point) (string, error) {
 	cl := centralized.NewClient()
 	defer cl.Close()
-	dataHash := sha256.Sum256(data)
-
 	wr := centralized.WriteRequest{
-		EncData:  data,
-		DataHash: dataHash[:],
-		K:        k,
-		C:        c,
-		Reader:   reader,
+		EncData:  wd.Data,
+		DataHash: wd.DataHash,
+		K:        wd.K,
+		C:        wd.C,
+		Reader:   wd.Reader,
 	}
-	//reply, err := cl.Write(dest, &wr)
 	reply, err := cl.Write(roster, &wr)
 	if err != nil {
-		return "", err
+		wd.StoredKey = ""
+	} else {
+		wd.StoredKey = reply.WriteID
 	}
-	return reply.WriteID, err
+	return wd, err
+	//return reply.WriteID, err
 }
 
-//func CreateReadTxn(dest *network.ServerIdentity, wID string, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
-//func CreateReadTxn(roster *onet.Roster, wID string, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
-func CreateReadTxn(roster *onet.Roster, suite schnorr.Suite, wID string, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
+func CreateReadTxn(roster *onet.Roster, wID string, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
 	cl := centralized.NewClient()
 	defer cl.Close()
 	widBytes, err := hex.DecodeString(wID)
 	if err != nil {
 		return nil, nil, err
 	}
-	//sig, err := schnorr.Sign(cothority.Suite, sk, widBytes)
-	sig, err := schnorr.Sign(suite, sk, widBytes)
+	sig, err := schnorr.Sign(cothority.Suite, sk, widBytes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,7 +46,6 @@ func CreateReadTxn(roster *onet.Roster, suite schnorr.Suite, wID string, sk kybe
 		WriteID: wID,
 		Sig:     sig,
 	}
-	//reply, err := cl.Read(dest, &rr)
 	reply, err := cl.Read(roster, &rr)
 	if err != nil {
 		return nil, nil, err
