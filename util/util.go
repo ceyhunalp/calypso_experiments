@@ -100,7 +100,7 @@ func ElGamalEncrypt(pk kyber.Point, msg []byte) (K, C kyber.Point, remainder []b
 	return
 }
 
-func SymEncrypt(msg []byte, key []byte) ([]byte, error) {
+func symEncrypt(msg []byte, key []byte) ([]byte, error) {
 	encData, err := aeadSeal(key[:], msg)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func SymEncrypt(msg []byte, key []byte) ([]byte, error) {
 func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point) (*WriteData, error) {
 	var symKey [16]byte
 	random.Bytes(symKey[:], random.New())
-	encData, err := SymEncrypt(data, symKey[:])
+	encData, err := symEncrypt(data, symKey[:])
 	if err != nil {
 		return nil, err
 	}
