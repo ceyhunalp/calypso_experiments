@@ -15,11 +15,12 @@ func CreateWriteTxn(roster *onet.Roster, wd *util.WriteData) (*util.WriteData, e
 	cl := centralized.NewClient()
 	defer cl.Close()
 	wr := centralized.WriteRequest{
-		EncData:  wd.Data,
-		DataHash: wd.DataHash,
-		K:        wd.K,
-		C:        wd.C,
-		Reader:   wd.Reader,
+		EncData:   wd.Data,
+		DataHash:  wd.DataHash,
+		K:         wd.K,
+		C:         wd.C,
+		Reader:    wd.Reader,
+		EncReader: wd.EncReader,
 	}
 	reply, err := cl.Write(roster, &wr)
 	if err != nil {

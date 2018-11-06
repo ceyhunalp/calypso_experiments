@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -27,7 +28,17 @@ type WriteData struct {
 	K         kyber.Point
 	C         kyber.Point
 	Reader    kyber.Point
+	EncReader []byte
 	StoredKey string
+}
+
+func CompareKeys(readerPt kyber.Point, decReader []byte) (int, error) {
+	readerPtBytes, err := readerPt.MarshalBinary()
+	if err != nil {
+		return -1, err
+	}
+	same := bytes.Compare(readerPtBytes, decReader)
+	return same, nil
 }
 
 func aeadSeal(symKey, data []byte) ([]byte, error) {
@@ -51,7 +62,7 @@ func aeadSeal(symKey, data []byte) ([]byte, error) {
 	return encData, nil
 }
 
-func aeadOpen(key, ciphertext []byte) ([]byte, error) {
+func AeadOpen(key, ciphertext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -75,7 +86,7 @@ func RecoverData(encData []byte, sk kyber.Scalar, k kyber.Point, c kyber.Point) 
 	if err != nil {
 		return nil, err
 	}
-	return aeadOpen(recvKey, encData)
+	return AeadOpen(recvKey, encData)
 }
 
 func ElGamalDecrypt(sk kyber.Scalar, K kyber.Point, C kyber.Point) ([]byte, error) {
@@ -113,16 +124,28 @@ func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point) (*W
 	random.Bytes(symKey[:], random.New())
 	encData, err := symEncrypt(data, symKey[:])
 	if err != nil {
+		log.Errorf("In CreateWriteData: %v", err)
+		return nil, err
+	}
+	readerBytes, err := reader.MarshalBinary()
+	if err != nil {
+		log.Errorf("In CreateWriteData: %v", err)
+		return nil, err
+	}
+	encReader, err := symEncrypt(readerBytes, symKey[:])
+	if err != nil {
+		log.Errorf("In CreateWriteData: %v", err)
 		return nil, err
 	}
 	k, c, _ := ElGamalEncrypt(serverKey, symKey[:])
 	dh := sha256.Sum256(encData)
 	wd := &WriteData{
-		Data:     encData,
-		DataHash: dh[:],
-		K:        k,
-		C:        c,
-		Reader:   reader,
+		Data:      encData,
+		DataHash:  dh[:],
+		K:         k,
+		C:         c,
+		Reader:    reader,
+		EncReader: encReader,
 	}
 	return wd, nil
 }

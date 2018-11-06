@@ -81,10 +81,11 @@ func (byzd *ByzcoinData) WaitProof(id byzcoin.InstanceID, interval time.Duration
 
 func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
 	sWrite := &calypso.SimpleWrite{
-		DataHash: wd.DataHash,
-		K:        wd.K,
-		C:        wd.C,
-		Reader:   wd.Reader,
+		DataHash:  wd.DataHash,
+		K:         wd.K,
+		C:         wd.C,
+		Reader:    wd.Reader,
+		EncReader: wd.EncReader,
 	}
 	writeBuf, err := protobuf.Encode(sWrite)
 	if err != nil {

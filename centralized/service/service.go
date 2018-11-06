@@ -58,18 +58,15 @@ func (s *Service) Write(req *WriteRequest) (*WriteReply, error) {
 }
 
 func (s *Service) Read(req *ReadRequest) (*ReadReply, error) {
+	sk := s.ServerIdentity().GetPrivate()
 	storedWrite, err := s.db.GetWrite(req.WriteID)
 	if err != nil {
 		return nil, err
 	}
-	err = verifyReader(req, storedWrite)
-	if err != nil {
-		return nil, err
-	}
-	sk := s.ServerIdentity().GetPrivate()
-	k, c, _ := reencryptData(storedWrite, sk)
+	k, c, err := reencryptData(req, storedWrite, sk)
 	if k == nil || c == nil {
-		return nil, errors.New("Could not reencrypt symmetric key")
+		return nil, err
+		//return nil, errors.New("Could not reencrypt symmetric key")
 	}
 	resp := &ReadReply{
 		K: k,

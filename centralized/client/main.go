@@ -21,7 +21,7 @@ func runCentralizedCalypso(roster *onet.Roster, serverKey kyber.Point, data []by
 
 	wd, err := util.CreateWriteData(data, rPk, serverKey)
 	if err != nil {
-		fmt.Println("Cannot create write data")
+		log.Errorf("CreateWriteData failed: %v", err)
 		os.Exit(1)
 	}
 

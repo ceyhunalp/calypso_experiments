@@ -51,6 +51,20 @@ func reencryptData(wt *calypso.SimpleWrite, sk kyber.Scalar) (kyber.Point, kyber
 	if err != nil {
 		return nil, nil, err
 	}
+
+	decReader, err := util.AeadOpen(symKey, wt.EncReader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ok, err := util.CompareKeys(wt.Reader, decReader)
+	if err != nil {
+		return nil, nil, err
+	}
+	if ok != 0 {
+		return nil, nil, errors.New("Reader public key does not match")
+	}
+
 	k, c, _ := util.ElGamalEncrypt(wt.Reader, symKey)
 	return k, c, nil
 }

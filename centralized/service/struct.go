@@ -20,11 +20,12 @@ type CentralizedCalypsoDB struct {
 }
 
 type WriteRequest struct {
-	EncData  []byte
-	DataHash []byte
-	K        kyber.Point
-	C        kyber.Point
-	Reader   kyber.Point
+	EncData   []byte
+	DataHash  []byte
+	K         kyber.Point
+	C         kyber.Point
+	Reader    kyber.Point
+	EncReader []byte
 }
 
 type WriteReply struct {
@@ -41,25 +42,47 @@ type ReadReply struct {
 	C kyber.Point
 }
 
-func reencryptData(req *WriteRequest, sk kyber.Scalar) (kyber.Point, kyber.Point, []byte) {
-	symKey, err := util.ElGamalDecrypt(sk, req.K, req.C)
+func reencryptData(rr *ReadRequest, sw *WriteRequest, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
+	// Check that the writeIDs match
+	widBytes, err := hex.DecodeString(rr.WriteID)
+	if err != nil {
+		return nil, nil, err
+	}
+	ok := bytes.Compare(widBytes, sw.DataHash)
+	if ok != 0 {
+		return nil, nil, errors.New("WriteIDs do not match")
+	}
+
+	// Verify the signature on read request against the policy in WR
+	err = schnorr.Verify(cothority.Suite, sw.Reader, widBytes, rr.Sig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get the symmetric key
+	symKey, err := util.ElGamalDecrypt(sk, sw.K, sw.C)
 	if err != nil {
 		log.Error("ElGamal decryption failed")
-		return nil, nil, nil
+		return nil, nil, err
 	}
-	return util.ElGamalEncrypt(req.Reader, symKey)
-}
 
-func verifyReader(req *ReadRequest, storedWrite *WriteRequest) error {
-	widBytes, err := hex.DecodeString(req.WriteID)
+	// Check that the reader is "the reader"
+	decReader, err := util.AeadOpen(symKey, sw.EncReader)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	ok := bytes.Compare(widBytes, storedWrite.DataHash)
+
+	ok, err = util.CompareKeys(sw.Reader, decReader)
+	if err != nil {
+		return nil, nil, err
+	}
 	if ok != 0 {
-		return errors.New("WriteIDs do not match")
+		return nil, nil, errors.New("Reader public key does not match")
 	}
-	return schnorr.Verify(cothority.Suite, storedWrite.Reader, widBytes, req.Sig)
+
+	// Reencrypt the symmetric key for the reader
+	k, c, _ := util.ElGamalEncrypt(sw.Reader, symKey)
+	return k, c, nil
 }
 
 func (cdb *CentralizedCalypsoDB) getFromTx(tx *bolt.Tx, key []byte) (*WriteRequest, error) {
