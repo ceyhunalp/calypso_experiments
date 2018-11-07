@@ -35,6 +35,7 @@ type WriteData struct {
 func CompareKeys(readerPt kyber.Point, decReader []byte) (int, error) {
 	readerPtBytes, err := readerPt.MarshalBinary()
 	if err != nil {
+		log.Errorf("CompareKeys error: %v", err)
 		return -1, err
 	}
 	same := bytes.Compare(readerPtBytes, decReader)
@@ -44,17 +45,20 @@ func CompareKeys(readerPt kyber.Point, decReader []byte) (int, error) {
 func aeadSeal(symKey, data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(symKey)
 	if err != nil {
+		log.Errorf("aeadSeal error: %v", err)
 		return nil, err
 	}
 	// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
 	nonce := make([]byte, nonceLen)
 	_, err = io.ReadFull(rand.Reader, nonce)
 	if err != nil {
+		log.Errorf("aeadSeal error: %v", err)
 		return nil, err
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
+		log.Errorf("aeadSeal error: %v", err)
 		return nil, err
 	}
 	encData := aesgcm.Seal(nil, nonce, data, nil)
@@ -65,15 +69,17 @@ func aeadSeal(symKey, data []byte) ([]byte, error) {
 func AeadOpen(key, ciphertext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
+		log.Errorf("AeadOpen error: %v", err)
 		return nil, err
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
+		log.Errorf("AeadOpen error: %v", err)
 		return nil, err
 	}
-	log.ErrFatal(err)
 	if len(ciphertext) < 12 {
+		log.Errorf("AeadOpen error: ciphertext too short")
 		return nil, errors.New("ciphertext too short")
 	}
 	nonce := ciphertext[len(ciphertext)-nonceLen:]
@@ -84,6 +90,7 @@ func AeadOpen(key, ciphertext []byte) ([]byte, error) {
 func RecoverData(encData []byte, sk kyber.Scalar, k kyber.Point, c kyber.Point) ([]byte, error) {
 	recvKey, err := ElGamalDecrypt(sk, k, c)
 	if err != nil {
+		log.Errorf("RecoverData error: %v", err)
 		return nil, err
 	}
 	return AeadOpen(recvKey, encData)
@@ -114,6 +121,7 @@ func ElGamalEncrypt(pk kyber.Point, msg []byte) (K, C kyber.Point, remainder []b
 func symEncrypt(msg []byte, key []byte) ([]byte, error) {
 	encData, err := aeadSeal(key[:], msg)
 	if err != nil {
+		log.Errorf("aeadSeal error: %v", err)
 		return nil, err
 	}
 	return encData, nil
@@ -124,17 +132,17 @@ func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point) (*W
 	random.Bytes(symKey[:], random.New())
 	encData, err := symEncrypt(data, symKey[:])
 	if err != nil {
-		log.Errorf("In CreateWriteData: %v", err)
+		log.Errorf("CreateWriteData error: %v", err)
 		return nil, err
 	}
 	readerBytes, err := reader.MarshalBinary()
 	if err != nil {
-		log.Errorf("In CreateWriteData: %v", err)
+		log.Errorf("CreateWriteData error: %v", err)
 		return nil, err
 	}
 	encReader, err := symEncrypt(readerBytes, symKey[:])
 	if err != nil {
-		log.Errorf("In CreateWriteData: %v", err)
+		log.Errorf("CreateWriteData error: %v", err)
 		return nil, err
 	}
 	k, c, _ := ElGamalEncrypt(serverKey, symKey[:])
@@ -155,6 +163,7 @@ func GetServerKey(fname *string) (kyber.Point, error) {
 	fh, err := os.Open(*fname)
 	defer fh.Close()
 	if err != nil {
+		log.Errorf("GetServerKey error: %v", err)
 		return nil, err
 	}
 
@@ -162,6 +171,7 @@ func GetServerKey(fname *string) (kyber.Point, error) {
 	for fs.Scan() {
 		tmp, err := encoding.StringHexToPoint(cothority.Suite, fs.Text())
 		if err != nil {
+			log.Errorf("GetServerKey error: %v", err)
 			return nil, err
 		}
 		keys = append(keys, tmp)
@@ -172,16 +182,19 @@ func GetServerKey(fname *string) (kyber.Point, error) {
 func ReadRoster(path *string) (*onet.Roster, error) {
 	file, err := os.Open(*path)
 	if err != nil {
+		log.Errorf("ReadRoster error: %v", err)
 		return nil, err
 	}
 
 	group, err := app.ReadGroupDescToml(file)
 	if err != nil {
+		log.Errorf("ReadRoster error: %v", err)
 		return nil, err
 	}
 
 	if len(group.Roster.List) == 0 {
 		fmt.Println("Empty roster")
+		log.Errorf("ReadRoster error: %v", err)
 		return nil, err
 	}
 	return group.Roster, nil

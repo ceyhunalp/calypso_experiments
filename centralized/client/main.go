@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	centralized "github.com/ceyhunalp/centralized_calypso/centralized"
 	"github.com/ceyhunalp/centralized_calypso/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/kyber"
@@ -21,29 +22,25 @@ func runCentralizedCalypso(roster *onet.Roster, serverKey kyber.Point, data []by
 
 	wd, err := util.CreateWriteData(data, rPk, serverKey)
 	if err != nil {
-		log.Errorf("CreateWriteData failed: %v", err)
 		os.Exit(1)
 	}
 
 	// Create write transaction
-	wd, err = CreateWriteTxn(roster, wd)
+	wd, err = centralized.CreateWriteTxn(roster, wd)
 	//wID, err := CreateWriteTxn(roster, encData, k, c, rPk)
 	if err != nil {
-		log.Errorf("Write transaction failed: %v", err)
 		os.Exit(1)
 	}
 	fmt.Println("Write transaction success:", wd.StoredKey)
 
 	// Create read transaction
-	kRead, cRead, err := CreateReadTxn(roster, wd.StoredKey, rSk)
+	kRead, cRead, err := centralized.CreateReadTxn(roster, wd.StoredKey, rSk)
 	if err != nil {
-		log.Errorf("Read transaction failed: %v", err)
 		os.Exit(1)
 	}
 
 	recvData, err := util.RecoverData(wd.Data, rSk, kRead, cRead)
 	if err != nil {
-		log.Errorf("Cannot recover data: %v", err)
 		os.Exit(1)
 	}
 	fmt.Println(string(recvData[:]))
@@ -67,12 +64,10 @@ func main() {
 
 	roster, err := readRoster(filePtr)
 	if err != nil {
-		log.Errorf("Could not read roster.toml: %v", err)
 		os.Exit(1)
 	}
 	serverKey, err := getServerKey(pkPtr)
 	if err != nil {
-		log.Errorf("Could not get the server key: %v", err)
 		os.Exit(1)
 	}
 	baseStr := "On Wisconsin! -- "

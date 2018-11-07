@@ -49,6 +49,7 @@ type storage struct {
 func (s *Service) Write(req *WriteRequest) (*WriteReply, error) {
 	storedKey, err := s.db.StoreWrite(req)
 	if err != nil {
+		log.Errorf("Write error: %v", err)
 		return nil, err
 	}
 	reply := &WriteReply{
@@ -61,10 +62,12 @@ func (s *Service) Read(req *ReadRequest) (*ReadReply, error) {
 	sk := s.ServerIdentity().GetPrivate()
 	storedWrite, err := s.db.GetWrite(req.WriteID)
 	if err != nil {
+		log.Errorf("Read error: %v", err)
 		return nil, err
 	}
 	k, c, err := reencryptData(req, storedWrite, sk)
 	if k == nil || c == nil {
+		log.Errorf("Read error: %v", err)
 		return nil, err
 		//return nil, errors.New("Could not reencrypt symmetric key")
 	}
