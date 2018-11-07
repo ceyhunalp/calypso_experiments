@@ -2,7 +2,9 @@
 .tags*
 build/
 conode/conode
-simulation/simulation
-simulation/server_list
-simulation/deter.toml
+centralized/client/client
+centralized/simulation/simulation
+centralized/simulation/build/
+centralized/simulation/server_list
+centralized/simulation/*.toml
 .idea
