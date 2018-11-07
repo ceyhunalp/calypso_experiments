@@ -25,7 +25,6 @@ func NewClient() *Client {
 	return &Client{Client: onet.NewClient(cothority.Suite, ServiceName)}
 }
 
-//func (c *Client) StoreData(dest *network.ServerIdentity, sr *StoreRequest) (*StoreReply, error) {
 func (c *Client) StoreData(r *onet.Roster, sr *StoreRequest) (*StoreReply, error) {
 	dest := r.List[0]
 	log.Lvl3("Sending message to", dest)
@@ -37,7 +36,6 @@ func (c *Client) StoreData(r *onet.Roster, sr *StoreRequest) (*StoreReply, error
 	return reply, nil
 }
 
-//func (c *Client) Decrypt(dest *network.ServerIdentity, dr *DecryptRequest) (*DecryptReply, error) {
 func (c *Client) Decrypt(r *onet.Roster, dr *DecryptRequest) (*DecryptReply, error) {
 	dest := r.List[0]
 	log.Lvl3("Sending message to", dest)

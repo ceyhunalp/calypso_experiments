@@ -47,13 +47,13 @@ func runCentralizedCalypso(roster *onet.Roster, serverKey kyber.Point, data []by
 	return nil
 }
 
-func getServerKey(pkPtr *string) (kyber.Point, error) {
-	return util.GetServerKey(pkPtr)
-}
+//func getServerKey(pkPtr *string) (kyber.Point, error) {
+//return util.GetServerKey(pkPtr)
+//}
 
-func readRoster(filePtr *string) (*onet.Roster, error) {
-	return util.ReadRoster(filePtr)
-}
+//func readRoster(filePtr *string) (*onet.Roster, error) {
+//return util.ReadRoster(filePtr)
+//}
 
 func main() {
 	pkPtr := flag.String("p", "", "pk.txt file")
@@ -62,11 +62,11 @@ func main() {
 	flag.Parse()
 	log.SetDebugVisible(*dbgPtr)
 
-	roster, err := readRoster(filePtr)
+	roster, err := util.ReadRoster(filePtr)
 	if err != nil {
 		os.Exit(1)
 	}
-	serverKey, err := getServerKey(pkPtr)
+	serverKey, err := util.GetServerKey(pkPtr)
 	if err != nil {
 		os.Exit(1)
 	}

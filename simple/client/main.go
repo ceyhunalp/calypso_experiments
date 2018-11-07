@@ -4,10 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/ceyhunalp/centralized_calypso/simple"
 	"github.com/ceyhunalp/centralized_calypso/util"
-	"github.com/dedis/cothority/calypso"
-	"github.com/dedis/cothority/darc"
-	"github.com/dedis/cothority/darc/expression"
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -17,30 +15,8 @@ import (
 	"time"
 )
 
-func setupDarcs() (darc.Signer, darc.Signer, *darc.Darc, error) {
-	var writer darc.Signer
-	var reader darc.Signer
-	writer = darc.NewSignerEd25519(nil, nil)
-	reader = darc.NewSignerEd25519(nil, nil)
-	writeDarc := darc.NewDarc(darc.InitRules([]darc.Identity{writer.Identity()}, []darc.Identity{writer.Identity()}), []byte("Writer"))
-	err := writeDarc.Rules.AddRule(darc.Action("spawn:"+calypso.ContractSimpleWriteID), expression.InitOrExpr(writer.Identity().String()))
-	if err != nil {
-		return writer, reader, nil, err
-	}
-	err = writeDarc.Rules.AddRule(darc.Action("spawn:"+calypso.ContractReadID), expression.InitOrExpr(reader.Identity().String()))
-	if err != nil {
-		return writer, reader, nil, err
-	}
-	return writer, reader, writeDarc, nil
-}
-
-func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *ByzcoinData, data []byte) error {
-	//data := []byte("On Wisconsin!")
-	//byzd, err := SetupByzcoin(r)
-	//if err != nil {
-	//return err
-	//}
-	writer, reader, wDarc, err := setupDarcs()
+func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *simple.ByzcoinData, data []byte) error {
+	writer, reader, wDarc, err := simple.SetupDarcs()
 	if err != nil {
 		return err
 	}
@@ -53,7 +29,7 @@ func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *ByzcoinData, 
 	if err != nil {
 		return err
 	}
-	err = StoreEncryptedData(r, wd)
+	err = simple.StoreEncryptedData(r, wd)
 	if err != nil {
 		return err
 	}
@@ -62,7 +38,6 @@ func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *ByzcoinData, 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("Write transaction InstanceID:", writeTxn.InstanceID)
 
 	wrProof, err := byzd.WaitProof(writeTxn.InstanceID, time.Second, nil)
 	if err != nil {
@@ -75,7 +50,6 @@ func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *ByzcoinData, 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("Read transaction InstanceID:", readTxn.InstanceID)
 
 	rProof, err := byzd.WaitProof(readTxn.InstanceID, time.Second, nil)
 	if err != nil {
@@ -98,14 +72,6 @@ func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *ByzcoinData, 
 	return nil
 }
 
-func getServerKey(pkPtr *string) (kyber.Point, error) {
-	return util.GetServerKey(pkPtr)
-}
-
-func readRoster(filePtr *string) (*onet.Roster, error) {
-	return util.ReadRoster(filePtr)
-}
-
 func main() {
 	pkPtr := flag.String("p", "", "pk.txt file")
 	dbgPtr := flag.Int("d", 0, "debug level")
@@ -113,17 +79,17 @@ func main() {
 	flag.Parse()
 	log.SetDebugVisible(*dbgPtr)
 
-	roster, err := readRoster(filePtr)
+	roster, err := util.ReadRoster(filePtr)
 	if err != nil {
 		log.Errorf("Reading roster failed: %v", err)
 		os.Exit(1)
 	}
-	serverKey, err := getServerKey(pkPtr)
+	serverKey, err := util.GetServerKey(pkPtr)
 	if err != nil {
 		log.Errorf("Get server key failed: %v", err)
 		os.Exit(1)
 	}
-	byzd, err := SetupByzcoin(roster)
+	byzd, err := simple.SetupByzcoin(roster)
 	if err != nil {
 		log.Errorf("Setting up Byzcoin failed: %v", err)
 		os.Exit(1)

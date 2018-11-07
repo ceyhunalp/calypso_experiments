@@ -49,19 +49,23 @@ type DecryptReply struct {
 func reencryptData(wt *calypso.SimpleWrite, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {
 	symKey, err := util.ElGamalDecrypt(sk, wt.K, wt.C)
 	if err != nil {
+		log.Errorf("reencryptData error: %v", err)
 		return nil, nil, err
 	}
 
 	decReader, err := util.AeadOpen(symKey, wt.EncReader)
 	if err != nil {
+		log.Errorf("reencryptData error: %v", err)
 		return nil, nil, err
 	}
 
 	ok, err := util.CompareKeys(wt.Reader, decReader)
 	if err != nil {
+		log.Errorf("reencryptData error: %v", err)
 		return nil, nil, err
 	}
 	if ok != 0 {
+		log.Errorf("reencryptData error: %v", err)
 		return nil, nil, errors.New("Reader public key does not match")
 	}
 
@@ -74,32 +78,40 @@ func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kybe
 
 	var read calypso.Read
 	if err := req.Read.ContractValue(cothority.Suite, calypso.ContractReadID, &read); err != nil {
+		log.Errorf("verifyDecryptRequest error: didn't get a read instance " + err.Error())
 		return nil, errors.New("didn't get a read instance: " + err.Error())
 	}
 	var write calypso.SimpleWrite
 	if err := req.Write.ContractValue(cothority.Suite, calypso.ContractSimpleWriteID, &write); err != nil {
+		log.Errorf("verifyDecryptRequest error: didn't get a write instance " + err.Error())
 		return nil, errors.New("didn't get a write instance: " + err.Error())
 	}
 	if !read.Write.Equal(byzcoin.NewInstanceID(req.Write.InclusionProof.Key)) {
+		log.Errorf("verifyDecryptRequest error: read doesn't point to passed write")
 		return nil, errors.New("read doesn't point to passed write")
 	}
 	if err := req.Read.Verify(req.SCID); err != nil {
+		log.Errorf("verifyDecryptRequest error: read proof cannot be verified to come from scID" + err.Error())
 		return nil, errors.New("read proof cannot be verified to come from scID: " + err.Error())
 	}
 	if err := req.Write.Verify(req.SCID); err != nil {
+		log.Errorf("verifyDecryptRequest error: write proof cannot be verified to come from scID" + err.Error())
 		return nil, errors.New("write proof cannot be verified to come from scID: " + err.Error())
 	}
 
 	keyBytes, err := hex.DecodeString(req.Key)
 	if err != nil {
+		log.Errorf("verifyDecryptRequest error: %v", err)
 		return nil, err
 	}
 	ok := bytes.Compare(keyBytes, storedData.DataHash)
 	if ok != 0 {
+		log.Errorf("verifyDecryptRequest error: Keys do not match")
 		return nil, errors.New("Keys do not match")
 	}
 	err = schnorr.Verify(cothority.Suite, write.Reader, keyBytes, req.Sig)
 	if err != nil {
+		log.Errorf("verifyDecryptRequest error: %v", err)
 		return nil, err
 	}
 	return &write, nil
@@ -108,10 +120,12 @@ func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kybe
 func getDecryptedData(req *DecryptRequest, storedData *StoreRequest, sk kyber.Scalar) (*DecryptReply, error) {
 	writeTxn, err := verifyDecryptRequest(req, storedData, sk)
 	if err != nil {
+		log.Errorf("getDecryptedData error: %v", err)
 		return nil, err
 	}
 	k, c, err := reencryptData(writeTxn, sk)
 	if err != nil {
+		log.Errorf("getDecryptedData error: %v", err)
 		return nil, err
 	}
 	return &DecryptReply{Data: storedData.Data, DataHash: storedData.DataHash, K: k, C: c}, nil
@@ -136,6 +150,7 @@ func (sdb *SimpleCalypsoDB) GetStoredData(key string) (*StoreRequest, error) {
 	var result *StoreRequest
 	keyByte, err := hex.DecodeString(key)
 	if err != nil {
+		log.Errorf("GetStoredData error: %v", err)
 		return nil, err
 	}
 	err = sdb.DB.View(func(tx *bolt.Tx) error {

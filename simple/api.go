@@ -1,4 +1,4 @@
-package main
+package simple
 
 import (
 	"encoding/hex"
@@ -11,6 +11,7 @@ import (
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/sign/schnorr"
 	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
 	"time"
 )
@@ -25,10 +26,12 @@ func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, 
 	defer cl.Close()
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
+		log.Errorf("DecryptRequest error: %v", err)
 		return nil, err
 	}
 	sig, err := schnorr.Sign(cothority.Suite, sk, keyBytes)
 	if err != nil {
+		log.Errorf("DecryptRequest error: %v", err)
 		return nil, err
 	}
 	dr := &simple.DecryptRequest{
@@ -48,6 +51,7 @@ func (byzd *ByzcoinData) AddReadTransaction(proof *byzcoin.Proof, signer darc.Si
 	}
 	readBuf, err := protobuf.Encode(read)
 	if err != nil {
+		log.Errorf("AddReadTransaction error: %v", err)
 		return nil, err
 	}
 	ctx := byzcoin.ClientTransaction{
@@ -64,12 +68,14 @@ func (byzd *ByzcoinData) AddReadTransaction(proof *byzcoin.Proof, signer darc.Si
 	}
 	err = ctx.Instructions[0].SignBy(darc.GetID(), signer)
 	if err != nil {
+		log.Errorf("AddReadTransaction error: %v", err)
 		return nil, err
 	}
 	reply := &TransactionReply{}
 	reply.InstanceID = ctx.Instructions[0].DeriveID("")
 	reply.AddTxResponse, err = byzd.Cl.AddTransactionAndWait(ctx, wait)
 	if err != nil {
+		log.Errorf("AddReadTransaction error: %v", err)
 		return nil, err
 	}
 	return reply, nil
@@ -89,6 +95,7 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Sig
 	}
 	writeBuf, err := protobuf.Encode(sWrite)
 	if err != nil {
+		log.Errorf("AddWriteTransaction error: %v", err)
 		return nil, err
 	}
 	ctx := byzcoin.ClientTransaction{
@@ -107,6 +114,7 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Sig
 	//Sign the transaction
 	err = ctx.Instructions[0].SignBy(darc.GetID(), signer)
 	if err != nil {
+		log.Errorf("AddWriteTransaction error: %v", err)
 		return nil, err
 	}
 	reply := &TransactionReply{}
@@ -114,6 +122,7 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Sig
 	//Delegate the work to the byzcoin client
 	reply.AddTxResponse, err = byzd.Cl.AddTransactionAndWait(ctx, wait)
 	if err != nil {
+		log.Errorf("AddWriteTransaction error: %v", err)
 		return nil, err
 	}
 	return reply, err
@@ -122,6 +131,7 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Sig
 func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddTxResponse, error) {
 	darcBuf, err := spawnDarc.ToProto()
 	if err != nil {
+		log.Errorf("SpawnDarc error: %v", err)
 		return nil, err
 	}
 	ctx := byzcoin.ClientTransaction{
@@ -141,6 +151,7 @@ func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddT
 	}
 	err = ctx.Instructions[0].SignBy(byzd.GDarc.GetBaseID(), byzd.Signer)
 	if err != nil {
+		log.Errorf("SpawnDarc error: %v", err)
 		return nil, err
 	}
 	return byzd.Cl.AddTransactionAndWait(ctx, wait)
@@ -155,6 +166,7 @@ func StoreEncryptedData(r *onet.Roster, wd *util.WriteData) error {
 	}
 	reply, err := cl.StoreData(r, &sr)
 	if err != nil {
+		log.Errorf("StoreEncryptedData error: %v", err)
 		return err
 	}
 	wd.StoredKey = reply.StoredKey
@@ -167,12 +179,14 @@ func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
 	byzd.Signer = darc.NewSignerEd25519(nil, nil)
 	byzd.GMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, r, []string{"spawn:" + byzcoin.ContractDarcID, "spawn:" + calypso.ContractSimpleWriteID, "spawn:" + calypso.ContractReadID}, byzd.Signer.Identity())
 	if err != nil {
+		log.Errorf("SetupByzcoin error: %v", err)
 		return nil, err
 	}
 	byzd.GMsg.BlockInterval = 100 * time.Millisecond
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
 	if err != nil {
+		log.Errorf("SetupByzcoin error: %v", err)
 		return nil, err
 	}
 	return byzd, nil

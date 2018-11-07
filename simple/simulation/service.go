@@ -1,13 +1,14 @@
 package main
 
 import (
+	"errors"
 	"github.com/BurntSushi/toml"
-	"github.com/ceyhunalp/centralized_calypso/centralized"
+	"github.com/ceyhunalp/centralized_calypso/simple"
 	"github.com/ceyhunalp/centralized_calypso/util"
-	"github.com/dedis/cothority"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
+	"time"
 )
 
 /*
@@ -17,7 +18,7 @@ import (
 const DATA_SIZE = 1024 * 1024
 
 func init() {
-	onet.SimulationRegister("CentralizedCalypso", NewCentralizedCalypsoService)
+	onet.SimulationRegister("SimpleCalypso", NewSimpleCalypsoService)
 }
 
 // SimulationService only holds the BFTree simulation
@@ -27,7 +28,7 @@ type SimulationService struct {
 
 // NewSimulationService returns the new simulation, where all fields are
 // initialised using the config-file
-func NewCentralizedCalypsoService(config string) (onet.Simulation, error) {
+func NewSimpleCalypsoService(config string) (onet.Simulation, error) {
 	es := &SimulationService{}
 	_, err := toml.Decode(config, es)
 	if err != nil {
@@ -74,31 +75,95 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		data[i] = 'w'
 	}
 
+	byzd, err := simple.SetupByzcoin(config.Roster)
+	if err != nil {
+		log.Errorf("Setting up Byzcoin failed: %v", err)
+		return err
+	}
+
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
 
-		rSk := cothority.Suite.Scalar().Pick(cothority.Suite.RandomStream())
-		rPk := cothority.Suite.Point().Mul(rSk, nil)
-		wd, err := util.CreateWriteData(data, rPk, serverPk)
+		setDarcs := monitor.NewTimeMeasure("setupDarcs")
+		writer, reader, wDarc, err := simple.SetupDarcs()
 		if err != nil {
 			return err
 		}
-		create_write_txn := monitor.NewTimeMeasure("CreateWriteTxn")
-		wd, err = centralized.CreateWriteTxn(config.Roster, wd)
-		create_write_txn.Record()
+		setDarcs.Record()
+
+		sd := monitor.NewTimeMeasure("spawnDarc")
+		_, err = byzd.SpawnDarc(*wDarc, 0)
+		sd.Record()
 		if err != nil {
 			return err
 		}
-		log.Info("Write transaction success:", wd.StoredKey)
-		kRead, cRead, err := centralized.CreateReadTxn(config.Roster, wd.StoredKey, rSk)
+
+		cwd := monitor.NewTimeMeasure("creat_wr_data")
+		wd, err := util.CreateWriteData(data, reader.Ed25519.Point, serverPk)
+		cwd.Record()
 		if err != nil {
 			return err
 		}
-		recvData, err := util.RecoverData(wd.Data, rSk, kRead, cRead)
+
+		//TODO: CHECK THIS
+		sed := monitor.NewTimeMeasure("store_enc_data")
+		err = simple.StoreEncryptedData(config.Roster, wd)
+		sed.Record()
 		if err != nil {
 			return err
 		}
-		log.Info("Recovered data length:", len(recvData))
+
+		awt := monitor.NewTimeMeasure("add_write_txn")
+		writeTxn, err := byzd.AddWriteTransaction(wd, writer, *wDarc, 5)
+		awt.Record()
+		if err != nil {
+			return err
+		}
+
+		wwp := monitor.NewTimeMeasure("write_wait_proof")
+		wrProof, err := byzd.WaitProof(writeTxn.InstanceID, time.Second, nil)
+		if err != nil {
+			return err
+		}
+		if !wrProof.InclusionProof.Match() {
+			return errors.New("Write inclusion proof does not match")
+		}
+		wwp.Record()
+
+		art := monitor.NewTimeMeasure("add_read_txn")
+		readTxn, err := byzd.AddReadTransaction(wrProof, reader, *wDarc, 5)
+		art.Record()
+		if err != nil {
+			return err
+		}
+
+		rwp := monitor.NewTimeMeasure("read_wait_proof")
+		rProof, err := byzd.WaitProof(readTxn.InstanceID, time.Second, nil)
+		if err != nil {
+			return err
+		}
+		if !rProof.InclusionProof.Match() {
+			return errors.New("Read inclusion proof does not match")
+		}
+		rwp.Record()
+
+		//TODO: CHECK THIS
+		decReq := monitor.NewTimeMeasure("dec_req")
+		dr, err := byzd.DecryptRequest(config.Roster, wrProof, rProof, wd.StoredKey, reader.Ed25519.Secret)
+		decReq.Record()
+		if err != nil {
+			return err
+		}
+
+		rd := monitor.NewTimeMeasure("rec_data")
+		recvData, err := util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
+		rd.Record()
+
+		if err != nil {
+			return err
+		}
+		log.Info("Recovered data length is:", len(recvData))
+
 	}
 	//size := config.Tree.Size()
 	//log.Lvl2("Size is:", size, "rounds:", s.Rounds)
