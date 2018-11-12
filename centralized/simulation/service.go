@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"github.com/BurntSushi/toml"
 	"github.com/ceyhunalp/centralized_calypso/centralized"
 	"github.com/ceyhunalp/centralized_calypso/util"
@@ -79,39 +80,36 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 
 		rSk := cothority.Suite.Scalar().Pick(cothority.Suite.RandomStream())
 		rPk := cothority.Suite.Point().Mul(rSk, nil)
-		wd, err := util.CreateWriteData(data, rPk, serverPk)
+
+		//cwd := monitor.NewTimeMeasure("CreateWriteData")
+		wd, err := util.CreateWriteData(data, rPk, serverPk, false)
+		//cwd.Record()
 		if err != nil {
 			return err
 		}
-		create_write_txn := monitor.NewTimeMeasure("CreateWriteTxn")
+
+		cwt := monitor.NewTimeMeasure("CreateWriteTxn")
 		wd, err = centralized.CreateWriteTxn(config.Roster, wd)
-		create_write_txn.Record()
+		cwt.Record()
 		if err != nil {
 			return err
 		}
 		log.Info("Write transaction success:", wd.StoredKey)
+
+		crt := monitor.NewTimeMeasure("CreateReadTxn")
 		kRead, cRead, err := centralized.CreateReadTxn(config.Roster, wd.StoredKey, rSk)
+		crt.Record()
 		if err != nil {
 			return err
 		}
+
+		rd := monitor.NewTimeMeasure("RecoverData")
 		recvData, err := util.RecoverData(wd.Data, rSk, kRead, cRead)
+		rd.Record()
 		if err != nil {
 			return err
 		}
-		log.Info("Recovered data length:", len(recvData))
+		log.Info("Data recovered: ", bytes.Compare(recvData, data))
 	}
-	//size := config.Tree.Size()
-	//log.Lvl2("Size is:", size, "rounds:", s.Rounds)
-	//c := template.NewClient()
-	//for round := 0; round < s.Rounds; round++ {
-	//log.Lvl1("Starting round", round)
-	//round := monitor.NewTimeMeasure("round")
-	//resp, err := c.Clock(config.Roster)
-	//log.ErrFatal(err)
-	//if resp.Time <= 0 {
-	//log.Fatal("0 time elapsed")
-	//}
-	//round.Record()
-	//}
 	return nil
 }
