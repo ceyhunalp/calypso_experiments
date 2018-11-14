@@ -12,7 +12,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *simple.ByzcoinData, data []byte) error {
@@ -25,7 +24,7 @@ func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *simple.Byzcoi
 		return err
 	}
 
-	wd, err := util.CreateWriteData(data, reader.Ed25519.Point, serverKey)
+	wd, err := util.CreateWriteData(data, reader.Ed25519.Point, serverKey, true)
 	if err != nil {
 		return err
 	}
@@ -38,28 +37,43 @@ func runSimpleCalypso(r *onet.Roster, serverKey kyber.Point, byzd *simple.Byzcoi
 	if err != nil {
 		return err
 	}
-
-	wrProof, err := byzd.WaitProof(writeTxn.InstanceID, time.Second, nil)
+	wrProofResponse, err := byzd.GetProof(writeTxn.InstanceID)
 	if err != nil {
 		return err
 	}
+	wrProof := wrProofResponse.Proof
 	if !wrProof.InclusionProof.Match() {
 		return errors.New("Write inclusion proof does not match")
 	}
-	readTxn, err := byzd.AddReadTransaction(wrProof, reader, *wDarc, 5)
+	//wrProof, err := byzd.WaitProof(writeTxn.InstanceID, time.Second, nil)
+	//if err != nil {
+	//return err
+	//}
+	//if !wrProof.InclusionProof.Match() {
+	//return errors.New("Write inclusion proof does not match")
+	//}
+	readTxn, err := byzd.AddReadTransaction(&wrProof, reader, *wDarc, 5)
 	if err != nil {
 		return err
 	}
-
-	rProof, err := byzd.WaitProof(readTxn.InstanceID, time.Second, nil)
+	rProofResponse, err := byzd.GetProof(readTxn.InstanceID)
 	if err != nil {
 		return err
 	}
+	rProof := rProofResponse.Proof
 	if !rProof.InclusionProof.Match() {
 		return errors.New("Read inclusion proof does not match")
 	}
 
-	dr, err := byzd.DecryptRequest(r, wrProof, rProof, wd.StoredKey, reader.Ed25519.Secret)
+	//rProof, err := byzd.WaitProof(readTxn.InstanceID, time.Second, nil)
+	//if err != nil {
+	//return err
+	//}
+	//if !rProof.InclusionProof.Match() {
+	//return errors.New("Read inclusion proof does not match")
+	//}
+
+	dr, err := byzd.DecryptRequest(r, &wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
 	if err != nil {
 		return err
 	}
@@ -95,7 +109,7 @@ func main() {
 		os.Exit(1)
 	}
 	baseStr := "On Wisconsin! -- "
-	for i := 0; i < 70; i++ {
+	for i := 0; i < 100; i++ {
 		err = runSimpleCalypso(roster, serverKey, byzd, []byte(strings.Join([]string{baseStr, strconv.Itoa(i + 1)}, "")))
 		if err != nil {
 			log.Errorf("Run SimpleCalypso failed: %v", err)

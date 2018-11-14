@@ -20,7 +20,7 @@ func runCentralizedCalypso(roster *onet.Roster, serverKey kyber.Point, data []by
 	rSk := cothority.Suite.Scalar().Pick(cothority.Suite.RandomStream())
 	rPk := cothority.Suite.Point().Mul(rSk, nil)
 
-	wd, err := util.CreateWriteData(data, rPk, serverKey)
+	wd, err := util.CreateWriteData(data, rPk, serverKey, false)
 	if err != nil {
 		os.Exit(1)
 	}

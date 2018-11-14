@@ -14,12 +14,12 @@ func CreateWriteTxn(roster *onet.Roster, wd *util.WriteData) (*util.WriteData, e
 	cl := cs.NewClient()
 	defer cl.Close()
 	wr := cs.WriteRequest{
-		EncData:   wd.Data,
-		DataHash:  wd.DataHash,
-		K:         wd.K,
-		C:         wd.C,
-		Reader:    wd.Reader,
-		EncReader: wd.EncReader,
+		EncData:  wd.Data,
+		DataHash: wd.DataHash,
+		K:        wd.K,
+		C:        wd.C,
+		Reader:   wd.Reader,
+		//EncReader: wd.EncReader,
 	}
 	reply, err := cl.Write(roster, &wr)
 	if err != nil {
@@ -28,7 +28,6 @@ func CreateWriteTxn(roster *onet.Roster, wd *util.WriteData) (*util.WriteData, e
 		wd.StoredKey = reply.WriteID
 	}
 	return wd, err
-	//return reply.WriteID, err
 }
 
 func CreateReadTxn(roster *onet.Roster, wID string, sk kyber.Scalar) (kyber.Point, kyber.Point, error) {

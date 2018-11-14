@@ -1,0 +1,10 @@
+Simulation = "Calypso"
+Servers = 7
+BF = 6
+Rounds = 4
+RunWait =  "600s"
+CloseWait = 6000
+Suite = "Ed25519"
+
+Hosts
+7

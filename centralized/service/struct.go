@@ -68,24 +68,22 @@ func reencryptData(rr *ReadRequest, sw *WriteRequest, sk kyber.Scalar) (kyber.Po
 		log.Errorf("reencryptData error: %v", err)
 		return nil, nil, err
 	}
-
 	// Check that the reader is "the reader"
-	decReader, err := util.AeadOpen(symKey, sw.EncReader)
-	if err != nil {
-		log.Errorf("reencryptData error: %v", err)
-		return nil, nil, err
-	}
+	//decReader, err := util.AeadOpen(symKey, sw.EncReader)
+	//if err != nil {
+	//log.Errorf("reencryptData error: %v", err)
+	//return nil, nil, err
+	//}
 
-	ok, err = util.CompareKeys(sw.Reader, decReader)
-	if err != nil {
-		log.Errorf("reencryptData error: %v", err)
-		return nil, nil, err
-	}
-	if ok != 0 {
-		log.Errorf("reencryptData error: Reader public key does not match")
-		return nil, nil, errors.New("Reader public key does not match")
-	}
-
+	//ok, err = util.CompareKeys(sw.Reader, decReader)
+	//if err != nil {
+	//log.Errorf("reencryptData error: %v", err)
+	//return nil, nil, err
+	//}
+	//if ok != 0 {
+	//log.Errorf("reencryptData error: Reader public key does not match")
+	//return nil, nil, errors.New("Reader public key does not match")
+	//}
 	// Reencrypt the symmetric key for the reader
 	k, c, _ := util.ElGamalEncrypt(sw.Reader, symKey)
 	return k, c, nil

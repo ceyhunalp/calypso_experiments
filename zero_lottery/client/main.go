@@ -32,10 +32,10 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 	numRounds := int(math.Log2(float64(numParticipant)))
 	numParticipantLeft := numParticipant
 	//writeTxnData := make([]*calypso.Write, numParticipant)
-	//var winnerList []int
-	//for i := 0; i < numParticipantLeft; i++ {
-	//winnerList[i] = i
-	//}
+	participantList := make([]int, numParticipant)
+	for i := 0; i < numParticipant; i++ {
+		participantList[i] = 1
+	}
 
 	for i := 0; i < numRounds; i++ {
 		lotteryData := make([]*zerolottery.LotteryData, numParticipantLeft)
@@ -74,6 +74,7 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 		//fmt.Println("Secret hash is:", revealedCommitList[i].SecretHash)
 		//}
 
+		var winnerList []int
 		for i := 0; i < numParticipantLeft; {
 			//These are the hashes
 			leftSecret := lotteryData[i].Secret
@@ -81,31 +82,80 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 			leftDigest := sha256.Sum256(leftSecret[:])
 			rightDigest := sha256.Sum256(rightSecret[:])
 			if bytes.Compare(leftDigest[:], revealedCommitList[i].SecretHash[:]) != 0 {
-				//append(winnerList, i+1)
-				//winner := 2
 				fmt.Println("Digests do not match - winner is", i+1)
+				winnerList = append(winnerList, 2)
 			} else {
 				if bytes.Compare(rightDigest[:], revealedCommitList[i+1].SecretHash[:]) != 0 {
 					fmt.Println("Digests do not match - winner is", i)
+					winnerList = append(winnerList, 1)
 				} else {
 					result := make([]byte, 32)
 					safeXORBytes(result, leftSecret[:], rightSecret[:])
 					lastDigit := int(result[31]) % 2
 					fmt.Println("Last digit is", int(result[31]))
 					if lastDigit == 0 {
-						//winner := 1
-						fmt.Println("Winner is", i)
+						//fmt.Println("Winner is", i)
+						winnerList = append(winnerList, 1)
 					} else {
-						//winner := 2
-						fmt.Println("Winner is", i+1)
+						//fmt.Println("Winner is", i+1)
+						winnerList = append(winnerList, 2)
 					}
 				}
 			}
 			i += 2
 		}
+
+		//for i := 0; i < numParticipantLeft/2; i++ {
+		//fmt.Print(winnerList[i], " ")
+		//}
+		//fmt.Println()
+		organizeList(participantList, winnerList)
 		numParticipantLeft = numParticipantLeft / 2
 	}
+	for i := 0; i < numParticipant; i++ {
+		if participantList[i] == 1 {
+			fmt.Println("Winner is", i)
+			break
+		}
+	}
 	return nil
+}
+
+func organizeList(participantList []int, winnerList []int) {
+	ctr := 0
+	idx := 0
+	seen := 0
+	clean := false
+	sz := len(winnerList)
+	numPart := len(participantList)
+	for ctr < sz {
+		win := winnerList[ctr]
+		for idx < numPart {
+			val := participantList[idx]
+			if val == 1 {
+				seen++
+				if seen > ctr {
+					if clean {
+						participantList[idx] = 0
+						clean = false
+						idx = numPart
+					} else {
+						if win == 1 {
+							//Keep this next one is eliminated
+							clean = true
+						} else {
+							participantList[idx] = 0
+							idx = numPart
+						}
+					}
+				}
+			}
+			idx++
+		}
+		ctr++
+		seen = 0
+		idx = 0
+	}
 }
 
 func main() {

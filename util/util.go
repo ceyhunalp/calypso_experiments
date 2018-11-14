@@ -127,7 +127,7 @@ func symEncrypt(msg []byte, key []byte) ([]byte, error) {
 	return encData, nil
 }
 
-func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point) (*WriteData, error) {
+func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point, isSimple bool) (*WriteData, error) {
 	var symKey [16]byte
 	random.Bytes(symKey[:], random.New())
 	encData, err := symEncrypt(data, symKey[:])
@@ -135,25 +135,28 @@ func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point) (*W
 		log.Errorf("CreateWriteData error: %v", err)
 		return nil, err
 	}
-	readerBytes, err := reader.MarshalBinary()
-	if err != nil {
-		log.Errorf("CreateWriteData error: %v", err)
-		return nil, err
-	}
-	encReader, err := symEncrypt(readerBytes, symKey[:])
-	if err != nil {
-		log.Errorf("CreateWriteData error: %v", err)
-		return nil, err
-	}
 	k, c, _ := ElGamalEncrypt(serverKey, symKey[:])
 	dh := sha256.Sum256(encData)
 	wd := &WriteData{
-		Data:      encData,
-		DataHash:  dh[:],
-		K:         k,
-		C:         c,
-		Reader:    reader,
-		EncReader: encReader,
+		Data:     encData,
+		DataHash: dh[:],
+		K:        k,
+		C:        c,
+		Reader:   reader,
+		//EncReader: encReader,
+	}
+	if isSimple {
+		readerBytes, err := reader.MarshalBinary()
+		if err != nil {
+			log.Errorf("CreateWriteData error: %v", err)
+			return nil, err
+		}
+		encReader, err := symEncrypt(readerBytes, symKey[:])
+		if err != nil {
+			log.Errorf("CreateWriteData error: %v", err)
+			return nil, err
+		}
+		wd.EncReader = encReader
 	}
 	return wd, nil
 }

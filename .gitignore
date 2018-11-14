@@ -5,13 +5,14 @@ build/
 conode/conode
 centralized/client/client
 centralized/simulation/simulation
+centralized/simulation/deploy
 centralized/simulation/build/
-centralized/simulation/test_data/
 centralized/simulation/server_list
 centralized/simulation/*.toml
 simple/client/client
 simple/simulation/simulation
 simple/simulation/build/
+simple/simulation/deploy
 simple/simulation/test_data/
 simple/simulation/server_list
 simple/simulation/*.toml

@@ -2,7 +2,7 @@ package simple
 
 import (
 	"encoding/hex"
-	simple "github.com/ceyhunalp/centralized_calypso/simple/service"
+	simpServ "github.com/ceyhunalp/centralized_calypso/simple/service"
 	"github.com/ceyhunalp/centralized_calypso/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
@@ -21,8 +21,8 @@ type TransactionReply struct {
 	byzcoin.InstanceID
 }
 
-func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*simple.DecryptReply, error) {
-	cl := simple.NewClient()
+func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*simpServ.DecryptReply, error) {
+	cl := simpServ.NewClient()
 	defer cl.Close()
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
@@ -34,7 +34,7 @@ func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, 
 		log.Errorf("DecryptRequest error: %v", err)
 		return nil, err
 	}
-	dr := &simple.DecryptRequest{
+	dr := &simpServ.DecryptRequest{
 		Write: wrProof,
 		Read:  rProof,
 		SCID:  byzd.Cl.ID,
@@ -42,6 +42,10 @@ func (byzd *ByzcoinData) DecryptRequest(r *onet.Roster, wrProof *byzcoin.Proof, 
 		Sig:   sig,
 	}
 	return cl.Decrypt(r, dr)
+}
+
+func (byzd *ByzcoinData) GetProof(id byzcoin.InstanceID) (*byzcoin.GetProofResponse, error) {
+	return byzd.Cl.GetProof(id.Slice())
 }
 
 func (byzd *ByzcoinData) AddReadTransaction(proof *byzcoin.Proof, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
@@ -73,16 +77,16 @@ func (byzd *ByzcoinData) AddReadTransaction(proof *byzcoin.Proof, signer darc.Si
 	}
 	reply := &TransactionReply{}
 	reply.InstanceID = ctx.Instructions[0].DeriveID("")
-	reply.AddTxResponse, err = byzd.Cl.AddTransactionAndWait(ctx, wait)
+	if wait == 0 {
+		reply.AddTxResponse, err = byzd.Cl.AddTransaction(ctx)
+	} else {
+		reply.AddTxResponse, err = byzd.Cl.AddTransactionAndWait(ctx, wait)
+	}
 	if err != nil {
 		log.Errorf("AddReadTransaction error: %v", err)
 		return nil, err
 	}
 	return reply, nil
-}
-
-func (byzd *ByzcoinData) WaitProof(id byzcoin.InstanceID, interval time.Duration, value []byte) (*byzcoin.Proof, error) {
-	return byzd.Cl.WaitProof(id, interval, value)
 }
 
 func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Signer, darc darc.Darc, wait int) (*TransactionReply, error) {
@@ -120,7 +124,12 @@ func (byzd *ByzcoinData) AddWriteTransaction(wd *util.WriteData, signer darc.Sig
 	reply := &TransactionReply{}
 	reply.InstanceID = ctx.Instructions[0].DeriveID("")
 	//Delegate the work to the byzcoin client
-	reply.AddTxResponse, err = byzd.Cl.AddTransactionAndWait(ctx, wait)
+	//reply.AddTxResponse, err = byzd.Cl.AddTransaction(ctx)
+	if wait == 0 {
+		reply.AddTxResponse, err = byzd.Cl.AddTransaction(ctx)
+	} else {
+		reply.AddTxResponse, err = byzd.Cl.AddTransactionAndWait(ctx, wait)
+	}
 	if err != nil {
 		log.Errorf("AddWriteTransaction error: %v", err)
 		return nil, err
@@ -158,9 +167,9 @@ func (byzd *ByzcoinData) SpawnDarc(spawnDarc darc.Darc, wait int) (*byzcoin.AddT
 }
 
 func StoreEncryptedData(r *onet.Roster, wd *util.WriteData) error {
-	cl := simple.NewClient()
+	cl := simpServ.NewClient()
 	defer cl.Close()
-	sr := simple.StoreRequest{
+	sr := simpServ.StoreRequest{
 		Data:     wd.Data,
 		DataHash: wd.DataHash,
 	}
@@ -182,7 +191,9 @@ func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
 		log.Errorf("SetupByzcoin error: %v", err)
 		return nil, err
 	}
-	byzd.GMsg.BlockInterval = 100 * time.Millisecond
+	// TODO: 3-4 seconds block interval
+	byzd.GMsg.BlockInterval = 500 * time.Millisecond
+	//byzd.GMsg.BlockInterval = 2 * time.Second
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
 	if err != nil {
