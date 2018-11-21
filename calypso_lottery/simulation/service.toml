@@ -1,0 +1,10 @@
+Simulation = "CalypsoLottery"
+Servers = 7
+Bf = 6
+Rounds = 3
+RunWait =  "6000s"
+Suite = "Ed25519"
+
+Hosts, NumParticipant
+7, 64
+7, 128

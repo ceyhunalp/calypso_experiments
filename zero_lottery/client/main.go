@@ -16,17 +16,6 @@ import (
 	"os"
 )
 
-func safeXORBytes(dst, a, b []byte) int {
-	n := len(a)
-	if len(b) < n {
-		n = len(b)
-	}
-	for i := 0; i < n; i++ {
-		dst[i] = a[i] ^ b[i]
-	}
-	return n
-}
-
 func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipant int) error {
 	var err error
 	numRounds := int(math.Log2(float64(numParticipant)))
@@ -42,11 +31,16 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 		commitTxnList := make([]*zerolottery.TransactionReply, numParticipantLeft)
 		for i := 0; i < numParticipantLeft; i++ {
 			lotteryData[i] = zerolottery.CreateLotteryData()
-			commitTxnList[i], err = byzd.AddCommitTransaction(lotteryData[i], 2)
+			wait := 0
+			if i == numParticipantLeft-1 {
+				wait = 3
+			}
+			commitTxnList[i], err = byzd.AddCommitTransaction(lotteryData[i], wait)
 			if err != nil {
+				log.Errorf("AddCommitTransaction failed: %v", err)
 				return err
 			}
-			fmt.Println("Secret is:", lotteryData[i].Secret)
+			fmt.Println("Commit is:", lotteryData[i].Digest)
 			//writeTxnData[i] = calypso.NewWrite(cothority.Suite, ltsReply.LTSID, writeDarcList[i].GetBaseID(), ltsReply.X, lotteryData[i].Secret[:])
 		}
 
@@ -54,6 +48,7 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 		for i := 0; i < numParticipantLeft; i++ {
 			commitProofResp, err := byzd.Cl.GetProof(commitTxnList[i].InstanceID.Slice())
 			if err != nil {
+				log.Errorf("GetProof(Commit) failed: %v", err)
 				return err
 			}
 			if !commitProofResp.Proof.InclusionProof.Match() {
@@ -62,55 +57,99 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 			commitProofList[i] = commitProofResp.Proof
 		}
 
-		revealedCommitList := make([]zerolottery.Commit, numParticipantLeft)
+		secretTxnList := make([]*zerolottery.TransactionReply, numParticipantLeft)
 		for i := 0; i < numParticipantLeft; i++ {
-			err = commitProofList[i].ContractValue(cothority.Suite, zerolottery.ContractCommitID, &revealedCommitList[i])
+			wait := 0
+			if i == numParticipantLeft-1 {
+				wait = 3
+			}
+			secretTxnList[i], err = byzd.AddSecretTransaction(lotteryData[i], wait)
+			if err != nil {
+				log.Errorf("AddSecretTransaction failed: %v", err)
+				return err
+			}
+			fmt.Println("Secret is:", lotteryData[i].Secret)
+		}
+
+		secretProofList := make([]byzcoin.Proof, numParticipantLeft)
+		for i := 0; i < numParticipantLeft; i++ {
+			secretProofResp, err := byzd.Cl.GetProof(secretTxnList[i].InstanceID.Slice())
+			if err != nil {
+				log.Errorf("GetProof(Secret) failed: %v", err)
+				return err
+			}
+			if !secretProofResp.Proof.InclusionProof.Match() {
+				return errors.New("Secret inclusion proof does not match")
+			}
+			secretProofList[i] = secretProofResp.Proof
+		}
+
+		revealedCommitList := make([]zerolottery.DataStore, numParticipantLeft)
+		revealedSecretList := make([]zerolottery.DataStore, numParticipantLeft)
+		//revealedCommitList := make([]zerolottery.Commit, numParticipantLeft)
+		for i := 0; i < numParticipantLeft; i++ {
+			err = commitProofList[i].ContractValue(cothority.Suite, zerolottery.ContractLotteryStoreID, &revealedCommitList[i])
 			if err != nil {
 				log.Errorf("did not get a commit instance" + err.Error())
 				return errors.New("did not get a commit instance" + err.Error())
 			}
+			//fmt.Println("Revealed commit:", revealedCommitList[i])
+			err = secretProofList[i].ContractValue(cothority.Suite, zerolottery.ContractLotteryStoreID, &revealedSecretList[i])
+			if err != nil {
+				log.Errorf("did not get a secret instance" + err.Error())
+				return errors.New("did not get a secret instance" + err.Error())
+			}
+			//fmt.Println("Revealed secret:", revealedSecretList[i])
 		}
-		//for i := 0; i < numParticipantLeft; i++ {
-		//fmt.Println("Secret hash is:", revealedCommitList[i].SecretHash)
-		//}
 
 		var winnerList []int
 		for i := 0; i < numParticipantLeft; {
 			//These are the hashes
-			leftSecret := lotteryData[i].Secret
-			rightSecret := lotteryData[i+1].Secret
+			//leftSecret := lotteryData[i].Secret
+			//rightSecret := lotteryData[i+1].Secret
+			leftSecret := revealedSecretList[i].Data
+			rightSecret := revealedSecretList[i+1].Data
 			leftDigest := sha256.Sum256(leftSecret[:])
 			rightDigest := sha256.Sum256(rightSecret[:])
-			if bytes.Compare(leftDigest[:], revealedCommitList[i].SecretHash[:]) != 0 {
+			//fmt.Println("Left secret:", leftSecret)
+			//fmt.Println("Left commit:", leftDigest)
+			//fmt.Println("Right secret:", rightSecret)
+			//fmt.Println("Right commit:", rightDigest)
+			//if bytes.Compare(leftDigest[:], revealedCommitList[i].SecretHash[:]) != 0 {
+			if bytes.Compare(leftDigest[:], revealedCommitList[i].Data[:]) != 0 {
 				fmt.Println("Digests do not match - winner is", i+1)
-				winnerList = append(winnerList, 2)
+				winnerList = append(winnerList, i+1)
+				//winnerList = append(winnerList, 2)
 			} else {
-				if bytes.Compare(rightDigest[:], revealedCommitList[i+1].SecretHash[:]) != 0 {
+				//if bytes.Compare(rightDigest[:], revealedCommitList[i+1].SecretHash[:]) != 0 {
+				if bytes.Compare(rightDigest[:], revealedCommitList[i+1].Data[:]) != 0 {
 					fmt.Println("Digests do not match - winner is", i)
-					winnerList = append(winnerList, 1)
+					winnerList = append(winnerList, i)
+					//winnerList = append(winnerList, 1)
 				} else {
 					result := make([]byte, 32)
-					safeXORBytes(result, leftSecret[:], rightSecret[:])
+					zerolottery.SafeXORBytes(result, leftSecret[:], rightSecret[:])
 					lastDigit := int(result[31]) % 2
 					fmt.Println("Last digit is", int(result[31]))
 					if lastDigit == 0 {
-						//fmt.Println("Winner is", i)
-						winnerList = append(winnerList, 1)
+						fmt.Println("Winner is", i)
+						winnerList = append(winnerList, i)
+						//winnerList = append(winnerList, 1)
 					} else {
-						//fmt.Println("Winner is", i+1)
-						winnerList = append(winnerList, 2)
+						fmt.Println("Winner is", i+1)
+						winnerList = append(winnerList, i+1)
+						//winnerList = append(winnerList, 2)
 					}
 				}
 			}
 			i += 2
 		}
-
+		zerolottery.OrganizeList(participantList, winnerList)
+		numParticipantLeft = numParticipantLeft / 2
 		//for i := 0; i < numParticipantLeft/2; i++ {
 		//fmt.Print(winnerList[i], " ")
 		//}
 		//fmt.Println()
-		organizeList(participantList, winnerList)
-		numParticipantLeft = numParticipantLeft / 2
 	}
 	for i := 0; i < numParticipant; i++ {
 		if participantList[i] == 1 {
@@ -121,42 +160,42 @@ func runZeroLottery(r *onet.Roster, byzd *zerolottery.ByzcoinData, numParticipan
 	return nil
 }
 
-func organizeList(participantList []int, winnerList []int) {
-	ctr := 0
-	idx := 0
-	seen := 0
-	clean := false
-	sz := len(winnerList)
-	numPart := len(participantList)
-	for ctr < sz {
-		win := winnerList[ctr]
-		for idx < numPart {
-			val := participantList[idx]
-			if val == 1 {
-				seen++
-				if seen > ctr {
-					if clean {
-						participantList[idx] = 0
-						clean = false
-						idx = numPart
-					} else {
-						if win == 1 {
-							//Keep this next one is eliminated
-							clean = true
-						} else {
-							participantList[idx] = 0
-							idx = numPart
-						}
-					}
-				}
-			}
-			idx++
-		}
-		ctr++
-		seen = 0
-		idx = 0
-	}
-}
+//func organizeList(participantList []int, winnerList []int) {
+//ctr := 0
+//idx := 0
+//seen := 0
+//clean := false
+//sz := len(winnerList)
+//numPart := len(participantList)
+//for ctr < sz {
+//win := winnerList[ctr]
+//for idx < numPart {
+//val := participantList[idx]
+//if val == 1 {
+//seen++
+//if seen > ctr {
+//if clean {
+//participantList[idx] = 0
+//clean = false
+//idx = numPart
+//} else {
+//if win == 1 {
+////Keep this next one is eliminated
+//clean = true
+//} else {
+//participantList[idx] = 0
+//idx = numPart
+//}
+//}
+//}
+//}
+//idx++
+//}
+//ctr++
+//seen = 0
+//idx = 0
+//}
+//}
 
 func main() {
 	numParticipant := flag.Int("n", 0, "number of participants")

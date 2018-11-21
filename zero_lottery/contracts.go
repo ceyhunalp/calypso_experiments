@@ -7,9 +7,9 @@ import (
 	"github.com/dedis/onet/log"
 )
 
-var ContractCommitID = "zeroLotteryCommit"
+var ContractLotteryStoreID = "zeroLotteryStore"
 
-func ContractCommit(cdb byzcoin.CollectionView, inst byzcoin.Instruction, c []byzcoin.Coin) ([]byzcoin.StateChange, []byzcoin.Coin, error) {
+func ContractLotteryStore(cdb byzcoin.CollectionView, inst byzcoin.Instruction, c []byzcoin.Coin) ([]byzcoin.StateChange, []byzcoin.Coin, error) {
 
 	err := inst.VerifyDarcSignature(cdb)
 	if err != nil {
@@ -27,17 +27,17 @@ func ContractCommit(cdb byzcoin.CollectionView, inst byzcoin.Instruction, c []by
 		var sc byzcoin.StateChanges
 		nc := c
 		switch inst.Spawn.ContractID {
-		case ContractCommitID:
-			cmt := inst.Spawn.Args.Search("commit")
+		case ContractLotteryStoreID:
+			str := inst.Spawn.Args.Search("store")
 			//w := inst.Spawn.Args.Search("commit")
-			if cmt == nil || len(cmt) == 0 {
-				return nil, nil, errors.New("need a commit request in 'commit' argument")
+			if str == nil || len(str) == 0 {
+				return nil, nil, errors.New("need a store request in 'store' argument")
 			}
 			instID := inst.DeriveID("")
-			log.Lvlf3("Successfully verified commit request and will store in %x", instID)
-			sc = append(sc, byzcoin.NewStateChange(byzcoin.Create, instID, ContractCommitID, cmt, darcID))
+			log.Lvlf3("Successfully verified store request and will store in %x", instID)
+			sc = append(sc, byzcoin.NewStateChange(byzcoin.Create, instID, ContractLotteryStoreID, str, darcID))
 		default:
-			return nil, nil, errors.New("can only spawn commit")
+			return nil, nil, errors.New("can only spawn store")
 		}
 		return sc, nc, nil
 	default:

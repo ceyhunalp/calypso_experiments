@@ -192,8 +192,7 @@ func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
 		return nil, err
 	}
 	// TODO: 3-4 seconds block interval
-	byzd.GMsg.BlockInterval = 500 * time.Millisecond
-	//byzd.GMsg.BlockInterval = 2 * time.Second
+	byzd.GMsg.BlockInterval = 7 * time.Second
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
 	if err != nil {

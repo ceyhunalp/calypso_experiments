@@ -12,18 +12,8 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"os"
+	"time"
 )
-
-func safeXORBytes(dst, a, b []byte) int {
-	n := len(a)
-	if len(b) < n {
-		n = len(b)
-	}
-	for i := 0; i < n; i++ {
-		dst[i] = a[i] ^ b[i]
-	}
-	return n
-}
 
 func runCalypsoLottery(r *onet.Roster, calypsoClient *calypso.Client, byzd *lottery.ByzcoinData, ltsReply *calypso.CreateLTSReply, numParticipant int) error {
 
@@ -34,9 +24,12 @@ func runCalypsoLottery(r *onet.Roster, calypsoClient *calypso.Client, byzd *lott
 	for i := 0; i < numParticipant; i++ {
 		_, err := byzd.SpawnDarc(*writeDarcList[i], 0)
 		if err != nil {
+			log.Errorf("SpawnDarc failed: %v", err)
 			return err
 		}
 	}
+
+	time.Sleep(2 * time.Second)
 
 	lotteryData := make([]*lottery.LotteryData, numParticipant)
 	writeTxnData := make([]*calypso.Write, numParticipant)
@@ -45,22 +38,30 @@ func runCalypsoLottery(r *onet.Roster, calypsoClient *calypso.Client, byzd *lott
 		writeTxnData[i] = calypso.NewWrite(cothority.Suite, ltsReply.LTSID, writeDarcList[i].GetBaseID(), ltsReply.X, lotteryData[i].Secret[:])
 	}
 
-	for i := 0; i < numParticipant; i++ {
-		fmt.Println("Lottery ticket #", i, "is:", lotteryData[i].Secret)
-	}
+	//for i := 0; i < numParticipant; i++ {
+	//fmt.Println("Lottery secret #", i, "is:", lotteryData[i].Secret)
+	//}
 
 	writeTxnList := make([]*calypso.WriteReply, numParticipant)
 	for i := 0; i < numParticipant; i++ {
-		writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], 2)
+		wait := 0
+		if i == numParticipant-1 {
+			wait = 3
+		}
+		writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], wait)
 		if err != nil {
+			log.Errorf("AddWrite failed: %v", err)
 			return err
 		}
 	}
+
+	//time.Sleep(3 * time.Second)
 
 	writeProofList := make([]byzcoin.Proof, numParticipant)
 	for i := 0; i < numParticipant; i++ {
 		wrProofResponse, err := byzd.Cl.GetProof(writeTxnList[i].InstanceID.Slice())
 		if err != nil {
+			log.Errorf("GetProof(Write) failed: %v", err)
 			return err
 		}
 		if !wrProofResponse.Proof.InclusionProof.Match() {
@@ -71,16 +72,24 @@ func runCalypsoLottery(r *onet.Roster, calypsoClient *calypso.Client, byzd *lott
 
 	readTxnList := make([]*calypso.ReadReply, numParticipant)
 	for i := 0; i < numParticipant; i++ {
-		readTxnList[i], err = calypsoClient.AddRead(&writeProofList[i], reader, *writeDarcList[i], 2)
+		wait := 0
+		if i == numParticipant-1 {
+			wait = 3
+		}
+		readTxnList[i], err = calypsoClient.AddRead(&writeProofList[i], reader, *writeDarcList[i], wait)
 		if err != nil {
+			log.Errorf("AddRead failed: %v", err)
 			return err
 		}
 	}
+
+	//time.Sleep(3 * time.Second)
 
 	readProofList := make([]byzcoin.Proof, numParticipant)
 	for i := 0; i < numParticipant; i++ {
 		rProofResponse, err := byzd.Cl.GetProof(readTxnList[i].InstanceID.Slice())
 		if err != nil {
+			log.Errorf("GetProof(Read) failed: %v", err)
 			return err
 		}
 		if !rProofResponse.Proof.InclusionProof.Match() {
@@ -93,6 +102,7 @@ func runCalypsoLottery(r *onet.Roster, calypsoClient *calypso.Client, byzd *lott
 	for i := 0; i < numParticipant; i++ {
 		dk, err := calypsoClient.DecryptKey(&calypso.DecryptKey{Read: readProofList[i], Write: writeProofList[i]})
 		if err != nil {
+			log.Errorf("DecryptKey failed: %v", err)
 			return err
 		}
 		if !dk.X.Equal(ltsReply.X) {
@@ -101,20 +111,20 @@ func runCalypsoLottery(r *onet.Roster, calypsoClient *calypso.Client, byzd *lott
 
 		decodedSecretList[i], err = calypso.DecodeKey(cothority.Suite, ltsReply.X, dk.Cs, dk.XhatEnc, reader.Ed25519.Secret)
 		if err != nil {
+			log.Errorf("DecodeKey failed: %v", err)
 			return err
 		}
 	}
 
 	result := make([]byte, 32)
 	for i := 0; i < numParticipant; i++ {
-		safeXORBytes(result, result, decodedSecretList[i])
+		lottery.SafeXORBytes(result, result, decodedSecretList[i])
 	}
 
-	fmt.Println(result)
+	fmt.Println("XOR result:", result)
 	lastDigit := int(result[31])
-	fmt.Println(lastDigit)
-	fmt.Println(lastDigit % numParticipant)
-
+	fmt.Println("Last digit is:", lastDigit)
+	fmt.Println("Winner is:", lastDigit%numParticipant)
 	return nil
 }
 
@@ -139,8 +149,12 @@ func main() {
 	calypsoClient := calypso.NewClient(byzd.Cl)
 	ltsReply, err := calypsoClient.CreateLTS()
 	if err != nil {
+		log.Errorf("runCalypsoLottery failed: %v", err)
 		os.Exit(1)
 	}
 
 	err = runCalypsoLottery(roster, calypsoClient, byzd, ltsReply, *numParticipant)
+	if err != nil {
+		log.Errorf("runCalypsoLottery failed: %v", err)
+	}
 }

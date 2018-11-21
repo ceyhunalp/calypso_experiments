@@ -20,6 +20,6 @@ func newService(c *onet.Context) (onet.Service, error) {
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
 	}
-	byzcoin.RegisterContract(c, zerolottery.ContractCommitID, zerolottery.ContractCommit)
+	byzcoin.RegisterContract(c, zerolottery.ContractLotteryStoreID, zerolottery.ContractLotteryStore)
 	return s, nil
 }

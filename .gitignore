@@ -17,3 +17,6 @@ simple/simulation/test_data/
 simple/simulation/server_list
 simple/simulation/*.toml
 .idea
+.DS_Store
+*/deploy
+*.bin

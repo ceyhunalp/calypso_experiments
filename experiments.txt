@@ -1,0 +1,55 @@
+=============== CENTRALIZED CALYPSO ==============
+CreateWriteData
+(1) Generate symkey
+(2) symenc data
+(3) elgamal encrypt the symkey
+
+CreateWriteTxn
+(1) Contact the centralized server
+(2) log write request to boltDB
+
+CreateReadTxn
+(1) Contact the centralized server
+(2) check that the read request points at the correct write request
+(3) verify signature with the pk in the read policy
+(4) elgamal decrypt the symkey
+(5) elgamal encrypt the symkey
+
+RecoverData
+(1) Elgamal decrypt the symkey
+(2) Symdec to recover data
+
+=============== SIMPLE CALYPSO ==============
+SetupDarc
+(1) Create key pairs
+(2) Define DARC rules
+
+SpawnDarc 
+(1) Add txn to Byzcoin
+
+CreateWriteData
+>> same as before <<
+
+StoreEncryptedData
+(1) Log encrypted data at the centralized storage
+
+AddWriteTransaction
+(1) Add transaction to Byzcoin
+
+GetProof
+
+AddReadTransaction
+(1) Add transaction to Byzcoin
+
+GetProof
+
+DecryptRequest
+(1) Read points to the correct write
+(2) write and read proof verifies
+(3) symdec to see if reader ok
+(4) verify signature
+(5) elgamal decrypt
+(6) Also verify that the reader has the key that was encrypted with the symkey
+
+RecoverData
+>> same as before <<

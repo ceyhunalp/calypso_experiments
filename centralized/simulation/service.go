@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"github.com/BurntSushi/toml"
 	"github.com/ceyhunalp/centralized_calypso/centralized"
 	"github.com/ceyhunalp/centralized_calypso/util"
 	"github.com/dedis/cothority"
+	"github.com/dedis/kyber"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
@@ -15,6 +15,7 @@ import (
  * Defines the simulation for the service-template
  */
 
+//const DATA_SIZE = 15
 const DATA_SIZE = 1024 * 1024
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
 	onet.SimulationBFTree
+	BatchSize int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -65,15 +67,22 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
+	var err error
 	log.Info("Total # of rounds is:", s.Rounds)
 	serverPk := config.Roster.Publics()[0]
 	size := config.Tree.Size()
 	log.Info("Size of the tree:", size)
 
-	data := make([]byte, DATA_SIZE)
-	for i := 0; i < DATA_SIZE; i++ {
-		data[i] = 'w'
-	}
+	//data := make([]byte, DATA_SIZE)
+	//for i := 0; i < DATA_SIZE; i++ {
+	//data[i] = 'w'
+	//}
+
+	//wdList := make([][]byte, s.BatchSize)
+	wdList := make([]*util.WriteData, s.BatchSize)
+	writeTxnList := make([]*util.WriteData, s.BatchSize)
+	readKList := make([]kyber.Point, s.BatchSize)
+	readCList := make([]kyber.Point, s.BatchSize)
 
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
@@ -81,35 +90,41 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		rSk := cothority.Suite.Scalar().Pick(cothority.Suite.RandomStream())
 		rPk := cothority.Suite.Point().Mul(rSk, nil)
 
-		//cwd := monitor.NewTimeMeasure("CreateWriteData")
-		wd, err := util.CreateWriteData(data, rPk, serverPk, false)
-		//cwd.Record()
-		if err != nil {
-			return err
+		for i := 0; i < s.BatchSize; i++ {
+			data := make([]byte, DATA_SIZE)
+			for j := 0; j < DATA_SIZE; j++ {
+				data[j] = byte(i)
+			}
+			//fmt.Println("Data is:", data)
+			wdList[i], err = util.CreateWriteData(data, rPk, serverPk, false)
+			if err != nil {
+				return err
+			}
 		}
 
 		cwt := monitor.NewTimeMeasure("CreateWriteTxn")
-		wd, err = centralized.CreateWriteTxn(config.Roster, wd)
-		cwt.Record()
-		if err != nil {
-			return err
+		for i := 0; i < s.BatchSize; i++ {
+			writeTxnList[i], err = centralized.CreateWriteTxn(config.Roster, wdList[i])
+			if err != nil {
+				return err
+			}
 		}
-		log.Info("Write transaction success:", wd.StoredKey)
+		cwt.Record()
 
 		crt := monitor.NewTimeMeasure("CreateReadTxn")
-		kRead, cRead, err := centralized.CreateReadTxn(config.Roster, wd.StoredKey, rSk)
+		for i := 0; i < s.BatchSize; i++ {
+			readKList[i], readCList[i], err = centralized.CreateReadTxn(config.Roster, wdList[i].StoredKey, rSk)
+			if err != nil {
+				return err
+			}
+			_, err := util.RecoverData(wdList[i].Data, rSk, readKList[i], readCList[i])
+			if err != nil {
+				return err
+			}
+			//log.Info("Data recovered: ", bytes.Compare(recvData, data))
+			//fmt.Println("Data recovered:", recvData)
+		}
 		crt.Record()
-		if err != nil {
-			return err
-		}
-
-		rd := monitor.NewTimeMeasure("RecoverData")
-		recvData, err := util.RecoverData(wd.Data, rSk, kRead, cRead)
-		rd.Record()
-		if err != nil {
-			return err
-		}
-		log.Info("Data recovered: ", bytes.Compare(recvData, data))
 	}
 	return nil
 }

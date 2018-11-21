@@ -1,11 +1,15 @@
 Simulation = "Calypso"
-Servers = 7
-Bf = 6
-Rounds = 10
-RunWait =  "500s"
+Servers = 4
+Bf = 15
+Rounds = 2
+RunWait =  "9000s"
 Delay = 100
 Bandwidth = 100
 Suite = "Ed25519"
 
-Hosts
-7
+Hosts, BatchSize
+16, 1
+#16, 4
+#16, 16
+#16, 64
+#16, 256
