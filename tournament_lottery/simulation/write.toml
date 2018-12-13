@@ -1,0 +1,15 @@
+Simulation = "TournamentLottery"
+Servers = 4
+Bf = 9
+Rounds = 1
+RunWait =  "24000s"
+Delay = 100
+Bandwidth = 100
+Suite = "Ed25519"
+
+Hosts, NumTransactions
+10, 1
+10, 2
+10, 3
+10, 4
+10, 6

@@ -18,5 +18,5 @@ simple/simulation/server_list
 simple/simulation/*.toml
 .idea
 .DS_Store
-*/deploy
+deploy/
 *.bin

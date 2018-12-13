@@ -23,7 +23,8 @@ func init() {
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
 	onet.SimulationBFTree
-	NumParticipant int
+	NumTransactions int
+	//NumParticipant int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -84,15 +85,15 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			return err
 		}
 
-		numParticipant := s.NumParticipant
-		writerList, reader, writeDarcList, err := lottery.SetupDarcs(numParticipant)
+		numTransactions := s.NumTransactions
+		writerList, reader, writeDarcList, err := lottery.SetupDarcs(numTransactions)
 		if err != nil {
 			return err
 		}
-		for i := 0; i < numParticipant; i++ {
-			wait := 0
-			if i == numParticipant-1 {
-				wait = 3
+		wait := 0
+		for i := 0; i < numTransactions; i++ {
+			if i == numTransactions-1 {
+				wait = 5
 			}
 			_, err := byzd.SpawnDarc(*writeDarcList[i], wait)
 			if err != nil {
@@ -101,31 +102,33 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			}
 		}
 
-		lt := monitor.NewTimeMeasure("lottery_time")
-		lotteryData := make([]*lottery.LotteryData, numParticipant)
-		writeTxnData := make([]*calypso.Write, numParticipant)
-		for i := 0; i < numParticipant; i++ {
+		lotteryData := make([]*lottery.LotteryData, numTransactions)
+		writeTxnData := make([]*calypso.Write, numTransactions)
+		//lt := monitor.NewTimeMeasure("calylot_time")
+		for i := 0; i < numTransactions; i++ {
 			lotteryData[i] = lottery.CreateLotteryData()
 			writeTxnData[i] = calypso.NewWrite(cothority.Suite, ltsReply.LTSID, writeDarcList[i].GetBaseID(), ltsReply.X, lotteryData[i].Secret[:])
 		}
 
-		//log.Info("Starting addwrite")
-		writeTxnList := make([]*calypso.WriteReply, numParticipant)
-		for i := 0; i < numParticipant; i++ {
-			wait := 0
-			if i == numParticipant-1 {
-				wait = 3
-			}
+		//wait = 0
+		wait = 3
+		writeTxnList := make([]*calypso.WriteReply, numTransactions)
+		wt := monitor.NewTimeMeasure("calylot_write")
+		for i := 0; i < numTransactions; i++ {
+			//if i == numTransactions-1 {
+			//wait = 3
+			//}
 			writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], wait)
 			if err != nil {
 				log.Errorf("AddWrite failed: %v", err)
 				return err
 			}
 		}
-		//log.Info("addwrite finished")
+		wt.Record()
 
-		writeProofList := make([]byzcoin.Proof, numParticipant)
-		for i := 0; i < numParticipant; i++ {
+		writeProofList := make([]byzcoin.Proof, numTransactions)
+		wp := monitor.NewTimeMeasure("calylot_write_proof")
+		for i := 0; i < numTransactions; i++ {
 			wrProofResponse, err := byzd.Cl.GetProof(writeTxnList[i].InstanceID.Slice())
 			if err != nil {
 				log.Errorf("GetProof(Write) failed: %v", err)
@@ -136,12 +139,13 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			}
 			writeProofList[i] = wrProofResponse.Proof
 		}
+		wp.Record()
 
-		//log.Info("Starting addread")
-		readTxnList := make([]*calypso.ReadReply, numParticipant)
-		for i := 0; i < numParticipant; i++ {
-			wait := 0
-			if i == numParticipant-1 {
+		wait = 0
+		readTxnList := make([]*calypso.ReadReply, numTransactions)
+		//clr := monitor.NewTimeMeasure("calylot_read")
+		for i := 0; i < numTransactions; i++ {
+			if i == numTransactions-1 {
 				wait = 3
 			}
 			readTxnList[i], err = calypsoClient.AddRead(&writeProofList[i], reader, *writeDarcList[i], wait)
@@ -150,9 +154,10 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 				return err
 			}
 		}
-		//log.Info("addread finished")
-		readProofList := make([]byzcoin.Proof, numParticipant)
-		for i := 0; i < numParticipant; i++ {
+		//clr.Record()
+		readProofList := make([]byzcoin.Proof, numTransactions)
+		//crp := monitor.NewTimeMeasure("calylot_read_proof")
+		for i := 0; i < numTransactions; i++ {
 			rProofResponse, err := byzd.Cl.GetProof(readTxnList[i].InstanceID.Slice())
 			if err != nil {
 				log.Errorf("GetProof(Read) failed: %v", err)
@@ -163,9 +168,10 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			}
 			readProofList[i] = rProofResponse.Proof
 		}
-
-		decodedSecretList := make([][]byte, numParticipant)
-		for i := 0; i < numParticipant; i++ {
+		//crp.Record()
+		decodedSecretList := make([][]byte, numTransactions)
+		//dk := monitor.NewTimeMeasure("calylot_decode")
+		for i := 0; i < numTransactions; i++ {
 			dk, err := calypsoClient.DecryptKey(&calypso.DecryptKey{Read: readProofList[i], Write: writeProofList[i]})
 			if err != nil {
 				log.Errorf("DecryptKey failed: %v", err)
@@ -181,17 +187,14 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 				return err
 			}
 		}
-
 		result := make([]byte, 32)
-		for i := 0; i < numParticipant; i++ {
+		for i := 0; i < numTransactions; i++ {
 			lottery.SafeXORBytes(result, result, decodedSecretList[i])
 		}
-
 		lastDigit := int(result[31])
-		log.Info("Winner is:", lastDigit%numParticipant)
-		lt.Record()
-		//fmt.Println("XOR result:", result)
-		//fmt.Println("Last digit is:", lastDigit)
+		//dk.Record()
+		//lt.Record()
+		log.Info("Winner is:", lastDigit%numTransactions)
 	}
 	return nil
 }

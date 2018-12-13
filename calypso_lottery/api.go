@@ -238,7 +238,7 @@ func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
 		log.Errorf("SetupByzcoin error: %v", err)
 		return nil, err
 	}
-	byzd.GMsg.BlockInterval = 7 * time.Second
+	byzd.GMsg.BlockInterval = 5 * time.Second
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
 	if err != nil {
