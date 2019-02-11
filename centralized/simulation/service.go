@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"github.com/BurntSushi/toml"
 	"github.com/ceyhunalp/centralized_calypso/centralized"
 	"github.com/ceyhunalp/centralized_calypso/util"
@@ -9,23 +10,29 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
+	"os"
+	"strconv"
 )
 
 /*
  * Defines the simulation for the service-template
  */
 
-//const DATA_SIZE = 15
+//const FIXED_COUNT = 10
 const DATA_SIZE = 1024 * 1024
 
 func init() {
-	onet.SimulationRegister("CentralizedCalypso", NewCentralizedCalypsoService)
+	onet.SimulationRegister("CentralizedCalypsoByzgen", NewCentralizedCalypsoService)
 }
 
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
 	onet.SimulationBFTree
-	BatchSize int
+	BatchSize            int
+	NumTransactions      int
+	NumWriteTransactions int
+	NumReadTransactions  int
+	NumBlocks            int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -64,21 +71,139 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 	return s.SimulationBFTree.Node(config)
 }
 
-// Run is used on the destination machines and runs a number of
-// rounds
-func (s *SimulationService) Run(config *onet.SimulationConfig) error {
+func readAuxFile(txnList []int) error {
+	//func readAuxFile(txnList []int, txnPerBlkList []int) error {
+	f, err := os.Open("./txn_list.data")
+	if err != nil {
+		return err
+	}
+	idx := 0
+	scanner := bufio.NewScanner(f)
+	for idx < len(txnList) {
+		scanner.Scan()
+		txnList[idx], err = strconv.Atoi(scanner.Text())
+		idx++
+	}
+	f.Close()
+	//f, err = os.Open("./txn_per_blk.data")
+	//if err != nil {
+	//return err
+	//}
+	//idx = 0
+	//scanner = bufio.NewScanner(f)
+	//for idx < len(txnPerBlkList) {
+	//scanner.Scan()
+	//txnPerBlkList[idx], err = strconv.Atoi(scanner.Text())
+	//idx++
+	//}
+	//f.Close()
+	return nil
+}
+
+func (s *SimulationService) runCentralizedByzgen(config *onet.SimulationConfig) error {
+	txnList := make([]int, s.NumTransactions)
+	//blkSizeList := make([]int, s.NumBlocks)
+	log.Info("Number of transactions:", s.NumTransactions)
+	log.Info("Number of write transactions:", s.NumWriteTransactions)
+	log.Info("Number of read transactions:", s.NumReadTransactions)
+	err := readAuxFile(txnList)
+	//err := readAuxFile(txnList, blkSizeList)
+	if err != nil {
+		log.Info("Error in readAux:", err)
+		return err
+	}
+
+	serverPk := config.Roster.Publics()[0]
+
+	//fixedWdList := make([]*util.WriteData, FIXED_COUNT)
+	//fixedTxnList := make([]*util.WriteData, FIXED_COUNT)
+
+	wdList := make([]*util.WriteData, s.NumWriteTransactions)
+	writeTxnList := make([]*util.WriteData, s.NumWriteTransactions)
+
+	readKList := make([]kyber.Point, s.NumReadTransactions)
+	readCList := make([]kyber.Point, s.NumReadTransactions)
+
+	rSk := cothority.Suite.Scalar().Pick(cothority.Suite.RandomStream())
+	rPk := cothority.Suite.Point().Mul(rSk, nil)
+	//for i := 0; i < FIXED_COUNT; i++ {
+	//data := make([]byte, DATA_SIZE)
+	//for j := 0; j < DATA_SIZE; j++ {
+	//data[j] = byte(i)
+	//}
+	//fixedWdList[i], err = util.CreateWriteData(data, rPk, serverPk, false)
+	//if err != nil {
+	//return err
+	//}
+	//}
+	//for i := 0; i < FIXED_COUNT; i++ {
+	//fixedTxnList[i], err = centralized.CreateWriteTxn(config.Roster, fixedWdList[i])
+	//if err != nil {
+	//return err
+	//}
+	//}
+	for i := 0; i < s.NumWriteTransactions; i++ {
+		data := make([]byte, DATA_SIZE)
+		for j := 0; j < DATA_SIZE; j++ {
+			data[j] = byte(i)
+			//data[j] = byte(FIXED_COUNT + i)
+		}
+		wdList[i], err = util.CreateWriteData(data, rPk, serverPk, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	for round := 0; round < s.Rounds; round++ {
+		log.Lvl1("Starting round", round)
+
+		txnIdx := 0
+		lastWriteIdx := 0
+		writeIdx := 0
+		readIdx := 0
+
+		simtime := monitor.NewTimeMeasure("Byzgen")
+		for txnIdx < s.NumTransactions {
+			if txnList[txnIdx] == 1 {
+				wt := monitor.NewTimeMeasure("WriteTxn")
+				writeTxnList[writeIdx], err = centralized.CreateWriteTxn(config.Roster, wdList[writeIdx])
+				if err != nil {
+					return err
+				}
+				wt.Record()
+				writeIdx++
+			} else {
+				rt := monitor.NewTimeMeasure("ReadTxn")
+				readKList[readIdx], readCList[readIdx], err = centralized.CreateReadTxn(config.Roster, wdList[lastWriteIdx].StoredKey, rSk)
+				if err != nil {
+					return err
+				}
+				rt.Record()
+				rvt := monitor.NewTimeMeasure("Recover")
+				_, err := util.RecoverData(wdList[lastWriteIdx].Data, rSk, readKList[readIdx], readCList[readIdx])
+				if err != nil {
+					return err
+				}
+				rvt.Record()
+				readIdx++
+			}
+			if lastWriteIdx+1 < writeIdx {
+				lastWriteIdx++
+			}
+			txnIdx++
+		}
+		simtime.Record()
+	}
+	return nil
+}
+
+func (s *SimulationService) runCentralized(config *onet.SimulationConfig) error {
 	var err error
 	log.Info("Total # of rounds is:", s.Rounds)
 	serverPk := config.Roster.Publics()[0]
 	size := config.Tree.Size()
 	log.Info("Size of the tree:", size)
 
-	//data := make([]byte, DATA_SIZE)
-	//for i := 0; i < DATA_SIZE; i++ {
-	//data[i] = 'w'
-	//}
-
-	//wdList := make([][]byte, s.BatchSize)
 	wdList := make([]*util.WriteData, s.BatchSize)
 	writeTxnList := make([]*util.WriteData, s.BatchSize)
 	readKList := make([]kyber.Point, s.BatchSize)
@@ -95,7 +220,6 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			for j := 0; j < DATA_SIZE; j++ {
 				data[j] = byte(i)
 			}
-			//fmt.Println("Data is:", data)
 			wdList[i], err = util.CreateWriteData(data, rPk, serverPk, false)
 			if err != nil {
 				return err
@@ -121,10 +245,18 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			if err != nil {
 				return err
 			}
-			//log.Info("Data recovered: ", bytes.Compare(recvData, data))
-			//fmt.Println("Data recovered:", recvData)
 		}
 		crt.Record()
+	}
+	return nil
+}
+
+// Run is used on the destination machines and runs a number of
+// rounds
+func (s *SimulationService) Run(config *onet.SimulationConfig) error {
+	err := s.runCentralizedByzgen(config)
+	if err != nil {
+		log.Info("RunCentralized error:", err)
 	}
 	return nil
 }

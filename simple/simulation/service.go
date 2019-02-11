@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"github.com/BurntSushi/toml"
 	"github.com/ceyhunalp/centralized_calypso/simple"
 	"github.com/ceyhunalp/centralized_calypso/util"
 	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/kyber"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
+	"os"
+	"strconv"
 )
 
 /*
@@ -16,6 +20,7 @@ import (
  */
 
 const DATA_SIZE = 1024 * 1024
+const FIXED_COUNT int = 10
 
 func init() {
 	onet.SimulationRegister("SimpleCalypso", NewSimpleCalypsoService)
@@ -24,7 +29,12 @@ func init() {
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
 	onet.SimulationBFTree
-	BatchSize int
+	BatchSize            int
+	NumTransactions      int
+	NumWriteTransactions int
+	NumReadTransactions  int
+	NumBlocks            int
+	BlockInterval        int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -63,14 +73,7 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 	return s.SimulationBFTree.Node(config)
 }
 
-// Run is used on the destination machines and runs a number of
-// rounds
-func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	log.Info("Total # of rounds is:", s.Rounds)
-	serverPk := config.Roster.Publics()[0]
-	size := config.Tree.Size()
-	log.Info("Size of the tree:", size)
-
+func (s *SimulationService) runSingleSimpleSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
 	wdList := make([]*util.WriteData, s.BatchSize)
 	writeTxnList := make([]*simple.TransactionReply, s.BatchSize)
 	readTxnList := make([]*simple.TransactionReply, s.BatchSize)
@@ -82,7 +85,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
-		byzd, err := simple.SetupByzcoin(config.Roster)
+		byzd, err := simple.SetupByzcoin(config.Roster, s.BlockInterval)
 		if err != nil {
 			log.Errorf("Setting up Byzcoin failed: %v", err)
 			return err
@@ -241,6 +244,399 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		//return err
 		//}
 		//log.Info("Data recovered: ", bytes.Compare(recvData, data))
+	}
+	return nil
+}
+
+func readAuxFile(txnList []int, txnPerBlkList []int) error {
+	f, err := os.Open("./txn_list_82.data")
+	if err != nil {
+		return err
+	}
+
+	idx := 0
+	scanner := bufio.NewScanner(f)
+	for idx < len(txnList) {
+		scanner.Scan()
+		txnList[idx], err = strconv.Atoi(scanner.Text())
+		idx++
+	}
+	f.Close()
+
+	f, err = os.Open("./txn_per_blk_82.data")
+	if err != nil {
+		return err
+	}
+
+	idx = 0
+	scanner = bufio.NewScanner(f)
+	for idx < len(txnPerBlkList) {
+		scanner.Scan()
+		txnPerBlkList[idx], err = strconv.Atoi(scanner.Text())
+		idx++
+	}
+	f.Close()
+
+	return nil
+}
+
+//func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
+
+//txnList := make([]int, s.NumTransactions)
+//blkSizeList := make([]int, s.NumBlocks)
+//log.Info("Number of transactions:", s.NumTransactions)
+//log.Info("Number of blocks:", s.NumBlocks)
+//err := readAuxFile(txnList, blkSizeList)
+//if err != nil {
+//log.Info("Error in readAux:", err)
+//return err
+//}
+
+//fixedWdList := make([]*util.WriteData, FIXED_COUNT)
+//fixedTxnList := make([]*simple.TransactionReply, FIXED_COUNT)
+//fixedProofList := make([]*byzcoin.Proof, FIXED_COUNT)
+
+//wdList := make([]*util.WriteData, s.NumWriteTransactions)
+//writeTxnList := make([]*simple.TransactionReply, s.NumWriteTransactions)
+//readTxnList := make([]*simple.TransactionReply, s.NumReadTransactions)
+//readProofList := make([]*byzcoin.Proof, s.NumReadTransactions)
+
+//byzd, err := simple.SetupByzcoin(config.Roster)
+//if err != nil {
+//log.Errorf("Setting up Byzcoin failed: %v", err)
+//return err
+//}
+//writer, reader, wDarc, err := simple.SetupDarcs()
+//if err != nil {
+//return err
+//}
+//_, err = byzd.SpawnDarc(*wDarc, 4)
+//if err != nil {
+//return err
+//}
+
+//for i := 0; i < FIXED_COUNT; i++ {
+//data := make([]byte, DATA_SIZE)
+//for j := 0; j < DATA_SIZE; j++ {
+//data[j] = byte(i)
+//}
+//fixedWdList[i], err = util.CreateWriteData(data, reader.Ed25519.Point, serverPk, true)
+//if err != nil {
+//return err
+//}
+//}
+//for i := 0; i < FIXED_COUNT; i++ {
+//err = simple.StoreEncryptedData(config.Roster, fixedWdList[i])
+//if err != nil {
+//return err
+//}
+//}
+//for i := 0; i < FIXED_COUNT; i++ {
+//wait := 0
+//if i == FIXED_COUNT-1 {
+//wait = 3
+//}
+//fixedTxnList[i], err = byzd.AddWriteTransaction(fixedWdList[i], writer, *wDarc, wait)
+//if err != nil {
+//return err
+//}
+//}
+//for i := 0; i < FIXED_COUNT; i++ {
+//wrProofResponse, err := byzd.GetProof(fixedTxnList[i].InstanceID)
+//if err != nil {
+//return err
+//}
+//wrProof := wrProofResponse.Proof
+//if !wrProof.InclusionProof.Match() {
+//return errors.New("Write inclusion proof does not match")
+//}
+//fixedProofList[i] = &wrProof
+//}
+
+//for i := 0; i < s.NumWriteTransactions; i++ {
+//data := make([]byte, DATA_SIZE)
+//for j := 0; j < DATA_SIZE; j++ {
+//data[j] = byte(FIXED_COUNT + i)
+//}
+//wdList[i], err = util.CreateWriteData(data, reader.Ed25519.Point, serverPk, true)
+//if err != nil {
+//return err
+//}
+//}
+
+//for round := 0; round < s.Rounds; round++ {
+//log.Lvl1("Starting round", round)
+
+//txnIdx := 0
+//blkSizeIdx := 0
+//writeIdx := 0
+//readIdx := 0
+
+//simtime := monitor.NewTimeMeasure("Byzgen_Simple")
+//for txnIdx < s.NumTransactions {
+////log.Info(txnIdx)
+//blkSize := blkSizeList[blkSizeIdx]
+//writeCnt := 0
+//readCnt := 0
+
+//for i := 0; i < blkSize; i++ {
+//wait := 0
+//if i == blkSize-1 {
+//wait = 3
+//}
+//if txnList[txnIdx] == 1 {
+//// WRITE TXN
+//wt := monitor.NewTimeMeasure("AddWriteTxn")
+//err = simple.StoreEncryptedData(config.Roster, wdList[writeIdx])
+//if err != nil {
+//return err
+//}
+//writeTxnList[writeIdx], err = byzd.AddWriteTransaction(wdList[writeIdx], writer, *wDarc, wait)
+//if err != nil {
+//return err
+//}
+//wt.Record()
+//writeCnt++
+//writeIdx++
+//} else {
+//// READ TXN
+//rt := monitor.NewTimeMeasure("AddReadTxn")
+//readTxnList[readIdx], err = byzd.AddReadTransaction(fixedProofList[readIdx%FIXED_COUNT], reader, *wDarc, wait)
+//if err != nil {
+//return err
+//}
+//rt.Record()
+//readCnt++
+//readIdx++
+//}
+//txnIdx++
+//}
+//wpt := monitor.NewTimeMeasure("WriteGetProof")
+//for j := 0; j < writeCnt; j++ {
+//wrProofResponse, err := byzd.GetProof(writeTxnList[writeIdx-j-1].InstanceID)
+//if err != nil {
+//return err
+//}
+//wrProof := wrProofResponse.Proof
+//if !wrProof.InclusionProof.Match() {
+//return errors.New("Write inclusion proof does not match")
+//}
+////wrProofList[j] = &wrProof
+//}
+//wpt.Record()
+//dt := monitor.NewTimeMeasure("Decrypt")
+//for j := 1; j <= readCnt; j++ {
+//rProofResponse, err := byzd.GetProof(readTxnList[readIdx-j].InstanceID)
+//if err != nil {
+//return err
+//}
+//rProof := rProofResponse.Proof
+//if !rProof.InclusionProof.Match() {
+//return errors.New("Read inclusion proof does not match")
+//}
+//readProofList[readIdx-j] = &rProof
+//dr, err := byzd.DecryptRequest(config.Roster, fixedProofList[(readIdx-j)%FIXED_COUNT], readProofList[readIdx-j], fixedWdList[(readIdx-j)%FIXED_COUNT].StoredKey, reader.Ed25519.Secret)
+//if err != nil {
+//return err
+//}
+
+//_, err = util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
+//if err != nil {
+//return err
+//}
+//}
+//dt.Record()
+//blkSizeIdx++
+//}
+//simtime.Record()
+//log.Info("I am done", blkSizeIdx, txnIdx)
+//}
+//return nil
+//}
+
+func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
+
+	txnList := make([]int, s.NumTransactions)
+	blkSizeList := make([]int, s.NumBlocks)
+	log.Info("Number of transactions:", s.NumTransactions)
+	log.Info("Number of blocks:", s.NumBlocks)
+	err := readAuxFile(txnList, blkSizeList)
+	if err != nil {
+		log.Info("Error in readAux:", err)
+		return err
+	}
+
+	fixedWdList := make([]*util.WriteData, FIXED_COUNT)
+	fixedTxnList := make([]*simple.TransactionReply, FIXED_COUNT)
+	fixedProofList := make([]*byzcoin.Proof, FIXED_COUNT)
+
+	wdList := make([]*util.WriteData, s.NumWriteTransactions)
+	writeTxnList := make([]*simple.TransactionReply, s.NumWriteTransactions)
+	readTxnList := make([]*simple.TransactionReply, s.NumReadTransactions)
+	readProofList := make([]*byzcoin.Proof, s.NumReadTransactions)
+
+	byzd, err := simple.SetupByzcoin(config.Roster, s.BlockInterval)
+	if err != nil {
+		log.Errorf("Setting up Byzcoin failed: %v", err)
+		return err
+	}
+	writer, reader, wDarc, err := simple.SetupDarcs()
+	if err != nil {
+		return err
+	}
+	_, err = byzd.SpawnDarc(*wDarc, 3)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < FIXED_COUNT; i++ {
+		data := make([]byte, DATA_SIZE)
+		for j := 0; j < DATA_SIZE; j++ {
+			data[j] = byte(i)
+		}
+		fixedWdList[i], err = util.CreateWriteData(data, reader.Ed25519.Point, serverPk, true)
+		if err != nil {
+			return err
+		}
+	}
+	for i := 0; i < FIXED_COUNT; i++ {
+		err = simple.StoreEncryptedData(config.Roster, fixedWdList[i])
+		if err != nil {
+			return err
+		}
+	}
+	for i := 0; i < FIXED_COUNT; i++ {
+		wait := 0
+		if i == FIXED_COUNT-1 {
+			wait = 3
+		}
+		fixedTxnList[i], err = byzd.AddWriteTransaction(fixedWdList[i], writer, *wDarc, wait)
+		if err != nil {
+			return err
+		}
+	}
+	for i := 0; i < FIXED_COUNT; i++ {
+		wrProofResponse, err := byzd.GetProof(fixedTxnList[i].InstanceID)
+		if err != nil {
+			return err
+		}
+		wrProof := wrProofResponse.Proof
+		if !wrProof.InclusionProof.Match() {
+			return errors.New("Write inclusion proof does not match")
+		}
+		fixedProofList[i] = &wrProof
+	}
+
+	for i := 0; i < s.NumWriteTransactions; i++ {
+		data := make([]byte, DATA_SIZE)
+		for j := 0; j < DATA_SIZE; j++ {
+			data[j] = byte(FIXED_COUNT + i)
+		}
+		wdList[i], err = util.CreateWriteData(data, reader.Ed25519.Point, serverPk, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	for round := 0; round < s.Rounds; round++ {
+		log.Lvl1("Starting round", round)
+
+		txnIdx := 0
+		blkSizeIdx := 0
+		writeIdx := 0
+		readIdx := 0
+
+		for txnIdx < s.NumTransactions {
+			//log.Info(txnIdx)
+			blkSize := blkSizeList[blkSizeIdx]
+			writeCnt := 0
+			readCnt := 0
+
+			measureStr := "Block_" + strconv.Itoa(blkSizeIdx)
+			blkTime := monitor.NewTimeMeasure(measureStr)
+			for i := 0; i < blkSize; i++ {
+				wait := 0
+				if i == blkSize-1 {
+					wait = 3
+				}
+				if txnList[txnIdx] == 1 {
+					// WRITE TXN
+					err = simple.StoreEncryptedData(config.Roster, wdList[writeIdx])
+					if err != nil {
+						return err
+					}
+					writeTxnList[writeIdx], err = byzd.AddWriteTransaction(wdList[writeIdx], writer, *wDarc, wait)
+					if err != nil {
+						return err
+					}
+					writeCnt++
+					writeIdx++
+				} else {
+					// READ TXN
+					readTxnList[readIdx], err = byzd.AddReadTransaction(fixedProofList[readIdx%FIXED_COUNT], reader, *wDarc, wait)
+					if err != nil {
+						return err
+					}
+					readCnt++
+					readIdx++
+				}
+				txnIdx++
+			}
+			blkTime.Record()
+
+			wpt := monitor.NewTimeMeasure("WriteProof")
+			for j := 0; j < writeCnt; j++ {
+				wrProofResponse, err := byzd.GetProof(writeTxnList[writeIdx-j-1].InstanceID)
+				if err != nil {
+					return err
+				}
+				wrProof := wrProofResponse.Proof
+				if !wrProof.InclusionProof.Match() {
+					return errors.New("Write inclusion proof does not match")
+				}
+			}
+			wpt.Record()
+			dt := monitor.NewTimeMeasure("Decrypt")
+			for j := 1; j <= readCnt; j++ {
+				rProofResponse, err := byzd.GetProof(readTxnList[readIdx-j].InstanceID)
+				if err != nil {
+					return err
+				}
+				rProof := rProofResponse.Proof
+				if !rProof.InclusionProof.Match() {
+					return errors.New("Read inclusion proof does not match")
+				}
+				readProofList[readIdx-j] = &rProof
+				dr, err := byzd.DecryptRequest(config.Roster, fixedProofList[(readIdx-j)%FIXED_COUNT], readProofList[readIdx-j], fixedWdList[(readIdx-j)%FIXED_COUNT].StoredKey, reader.Ed25519.Secret)
+				if err != nil {
+					return err
+				}
+
+				_, err = util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
+				if err != nil {
+					return err
+				}
+			}
+			dt.Record()
+			blkSizeIdx++
+		}
+		log.Info("I am done", blkSizeIdx, txnIdx)
+	}
+	return nil
+}
+
+// Run is used on the destination machines and runs a number of
+// rounds
+func (s *SimulationService) Run(config *onet.SimulationConfig) error {
+	log.Info("Total # of rounds is:", s.Rounds)
+	serverPk := config.Roster.Publics()[0]
+	size := config.Tree.Size()
+	log.Info("Size of the tree:", size)
+
+	err := s.runByzgenSimulation(config, serverPk)
+	if err != nil {
+		log.Info("Simulation error:", err)
+		return err
 	}
 	return nil
 }

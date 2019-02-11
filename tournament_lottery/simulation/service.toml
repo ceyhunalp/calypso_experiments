@@ -2,8 +2,8 @@ Simulation = "TournamentLottery"
 Servers = 7
 Bf = 6
 Rounds = 1
-RunWait =  "6000s"
+RunWait =  "24000s"
 Suite = "Ed25519"
 
 Hosts, NumTransactions
-7, 17
+7, 16

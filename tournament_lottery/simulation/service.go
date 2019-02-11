@@ -1,18 +1,18 @@
 package main
 
 import (
-	//"bytes"
-	//"crypto/sha256"
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	tournament "github.com/ceyhunalp/centralized_calypso/tournament_lottery"
-	//"github.com/dedis/cothority"
+	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
-	//"math"
+	"math"
 )
 
 /*
@@ -76,31 +76,32 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		log.Lvl1("Starting round", round)
 		byzd, err := tournament.SetupByzcoin(config.Roster)
 		numTransactions := s.NumTransactions
-		numRounds := 1
-		//numRounds := int(math.Ceil(math.Log2(float64(numTransactions))))
+		//numRounds := 1
+		numRounds := int(math.Ceil(math.Log2(float64(numTransactions))))
 		numTransactionsLeft := numTransactions
 		participantList := make([]int, numTransactions)
 		for i := 0; i < numTransactions; i++ {
 			participantList[i] = 1
 		}
 
-		//isOdd := false
+		isOdd := false
 		fmt.Println("Number of rounds is:", numRounds)
 		for i := 0; i < numRounds; i++ {
-			//if numTransactionsLeft%2 != 0 {
-			//numTransactionsLeft -= 1
-			//isOdd = true
-			//}
+			if numTransactionsLeft%2 != 0 {
+				numTransactionsLeft -= 1
+				isOdd = true
+			}
 			lotteryData := make([]*tournament.LotteryData, numTransactionsLeft)
 			commitTxnList := make([]*tournament.TransactionReply, numTransactionsLeft)
-			wait := 3
-			//wait := 0
+			//wait := 3
+			wait := 0
 			comtime := monitor.NewTimeMeasure("commit_time")
 			for i := 0; i < numTransactionsLeft; i++ {
 				lotteryData[i] = tournament.CreateLotteryData()
-				//if i == numTransactionsLeft-1 {
-				//wait = 3
-				//}
+				if i == numTransactionsLeft-1 {
+					wait = 3
+				}
+				log.Lvl1("[TournamentLottery] AddCommit called")
 				commitTxnList[i], err = byzd.AddCommitTransaction(lotteryData[i], wait)
 				if err != nil {
 					log.Errorf("AddCommitTransaction failed: %v", err)
@@ -123,92 +124,93 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 				commitProofList[i] = commitProofResp.Proof
 			}
 			wrproof.Record()
-			//wait = 0
-			//secretTxnList := make([]*tournament.TransactionReply, numTransactionsLeft)
-			//trt := monitor.NewTimeMeasure("tournament_reveal")
-			//for i := 0; i < numTransactionsLeft; i++ {
-			//if i == numTransactionsLeft-1 {
-			//wait = 3
-			//}
-			//secretTxnList[i], err = byzd.AddSecretTransaction(lotteryData[i], wait)
-			//if err != nil {
-			//log.Errorf("AddSecretTransaction failed: %v", err)
-			//return err
-			//}
-			//}
-			//trt.Record()
+			wait = 0
+			secretTxnList := make([]*tournament.TransactionReply, numTransactionsLeft)
+			trt := monitor.NewTimeMeasure("tournament_reveal")
+			for i := 0; i < numTransactionsLeft; i++ {
+				if i == numTransactionsLeft-1 {
+					wait = 3
+				}
+				log.Lvl1("[TournametLottery] AddSecret called")
+				secretTxnList[i], err = byzd.AddSecretTransaction(lotteryData[i], wait)
+				if err != nil {
+					log.Errorf("AddSecretTransaction failed: %v", err)
+					return err
+				}
+			}
+			trt.Record()
 
-			//secretProofList := make([]byzcoin.Proof, numTransactionsLeft)
-			//tspt := monitor.NewTimeMeasure("tournament_proof")
-			//for i := 0; i < numTransactionsLeft; i++ {
-			//secretProofResp, err := byzd.Cl.GetProof(secretTxnList[i].InstanceID.Slice())
-			//if err != nil {
-			//log.Errorf("GetProof(Secret) failed: %v", err)
-			//return err
-			//}
-			//if !secretProofResp.Proof.InclusionProof.Match() {
-			//return errors.New("Secret inclusion proof does not match")
-			//}
-			//secretProofList[i] = secretProofResp.Proof
-			//}
-			//tspt.Record()
+			secretProofList := make([]byzcoin.Proof, numTransactionsLeft)
+			tspt := monitor.NewTimeMeasure("tournament_proof")
+			for i := 0; i < numTransactionsLeft; i++ {
+				secretProofResp, err := byzd.Cl.GetProof(secretTxnList[i].InstanceID.Slice())
+				if err != nil {
+					log.Errorf("GetProof(Secret) failed: %v", err)
+					return err
+				}
+				if !secretProofResp.Proof.InclusionProof.Match() {
+					return errors.New("Secret inclusion proof does not match")
+				}
+				secretProofList[i] = secretProofResp.Proof
+			}
+			tspt.Record()
 
-			//trvt := monitor.NewTimeMeasure("tournament_get_winner")
-			//revealedCommitList := make([]tournament.DataStore, numTransactionsLeft)
-			//revealedSecretList := make([]tournament.DataStore, numTransactionsLeft)
-			//for i := 0; i < numTransactionsLeft; i++ {
-			//err = commitProofList[i].ContractValue(cothority.Suite, tournament.ContractLotteryStoreID, &revealedCommitList[i])
-			//if err != nil {
-			//log.Errorf("did not get a commit instance" + err.Error())
-			//return errors.New("did not get a commit instance" + err.Error())
-			//}
-			//err = secretProofList[i].ContractValue(cothority.Suite, tournament.ContractLotteryStoreID, &revealedSecretList[i])
-			//if err != nil {
-			//log.Errorf("did not get a secret instance" + err.Error())
-			//return errors.New("did not get a secret instance" + err.Error())
-			//}
-			//}
+			trvt := monitor.NewTimeMeasure("tournament_get_winner")
+			revealedCommitList := make([]tournament.DataStore, numTransactionsLeft)
+			revealedSecretList := make([]tournament.DataStore, numTransactionsLeft)
+			for i := 0; i < numTransactionsLeft; i++ {
+				err = commitProofList[i].ContractValue(cothority.Suite, tournament.ContractLotteryStoreID, &revealedCommitList[i])
+				if err != nil {
+					log.Errorf("did not get a commit instance" + err.Error())
+					return errors.New("did not get a commit instance" + err.Error())
+				}
+				err = secretProofList[i].ContractValue(cothority.Suite, tournament.ContractLotteryStoreID, &revealedSecretList[i])
+				if err != nil {
+					log.Errorf("did not get a secret instance" + err.Error())
+					return errors.New("did not get a secret instance" + err.Error())
+				}
+			}
 
-			//var winnerList []int
-			//for i := 0; i < numTransactionsLeft; {
-			////These are the hashes
-			//leftSecret := revealedSecretList[i].Data
-			//rightSecret := revealedSecretList[i+1].Data
-			//leftDigest := sha256.Sum256(leftSecret[:])
-			//rightDigest := sha256.Sum256(rightSecret[:])
-			//if bytes.Compare(leftDigest[:], revealedCommitList[i].Data[:]) != 0 {
-			//fmt.Println("Digests do not match - winner is", i+1)
-			//winnerList = append(winnerList, i+1)
-			//} else {
-			//if bytes.Compare(rightDigest[:], revealedCommitList[i+1].Data[:]) != 0 {
-			//fmt.Println("Digests do not match - winner is", i)
-			//winnerList = append(winnerList, i)
-			//} else {
-			//result := make([]byte, 32)
-			//tournament.SafeXORBytes(result, leftSecret[:], rightSecret[:])
-			//lastDigit := int(result[31]) % 2
-			//if lastDigit == 0 {
-			//winnerList = append(winnerList, i)
-			////fmt.Println("Winner is", i)
-			//} else {
-			//winnerList = append(winnerList, i+1)
-			////fmt.Println("Winner is", i+1)
+			var winnerList []int
+			for i := 0; i < numTransactionsLeft; {
+				//These are the hashes
+				leftSecret := revealedSecretList[i].Data
+				rightSecret := revealedSecretList[i+1].Data
+				leftDigest := sha256.Sum256(leftSecret[:])
+				rightDigest := sha256.Sum256(rightSecret[:])
+				if bytes.Compare(leftDigest[:], revealedCommitList[i].Data[:]) != 0 {
+					fmt.Println("Digests do not match - winner is", i+1)
+					winnerList = append(winnerList, i+1)
+				} else {
+					if bytes.Compare(rightDigest[:], revealedCommitList[i+1].Data[:]) != 0 {
+						fmt.Println("Digests do not match - winner is", i)
+						winnerList = append(winnerList, i)
+					} else {
+						result := make([]byte, 32)
+						tournament.SafeXORBytes(result, leftSecret[:], rightSecret[:])
+						lastDigit := int(result[31]) % 2
+						if lastDigit == 0 {
+							winnerList = append(winnerList, i)
+							//fmt.Println("Winner is", i)
+						} else {
+							winnerList = append(winnerList, i+1)
+							//fmt.Println("Winner is", i+1)
+						}
+					}
+				}
+				i += 2
+			}
+			if isOdd {
+				winnerList = append(winnerList, numTransactionsLeft)
+				numTransactionsLeft += 1
+			}
+			numTransactionsLeft = int(math.Ceil(float64(numTransactionsLeft) / 2))
+			isOdd = false
+			trvt.Record()
+			tournament.OrganizeList(participantList, winnerList)
+			//for i := 0; i < numTransactions; i++ {
+			//fmt.Print(participantList[i], " ")
 			//}
-			//}
-			//}
-			//i += 2
-			//}
-			//if isOdd {
-			//winnerList = append(winnerList, numTransactionsLeft)
-			//numTransactionsLeft += 1
-			//}
-			//numTransactionsLeft = int(math.Ceil(float64(numTransactionsLeft) / 2))
-			//isOdd = false
-			//trvt.Record()
-			//tournament.OrganizeList(participantList, winnerList)
-			////for i := 0; i < numTransactions; i++ {
-			////fmt.Print(participantList[i], " ")
-			////}
 		}
 		//lt.Record()
 		for i := 0; i < numTransactions; i++ {

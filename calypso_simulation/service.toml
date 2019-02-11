@@ -1,12 +1,12 @@
 Simulation = "Calypso"
 Servers = 7
 BF = 6
-Rounds = 3
-RunWait =  "600s"
+Rounds = 1
+RunWait =  "36000s"
 Suite = "Ed25519"
 
-Hosts, BatchSize
-7, 4
-7, 16
-7, 64
-7, 256
+Hosts, Interleave, NumTransactions, NumWriteTransactions, NumReadTransactions
+7, false, 3, 0, 0
+#7, false, 16, 0, 0
+#7, false, 64, 0, 0
+#7, false, 256, 0, 0
