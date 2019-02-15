@@ -15,6 +15,7 @@ import (
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
 	//"math/rand"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -68,6 +69,22 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	sc := &onet.SimulationConfig{}
 	s.CreateRoster(sc, hosts, 2000)
 	err := s.CreateTree(sc)
+	if err != nil {
+		return nil, err
+	}
+	buf, err := ioutil.ReadFile("./txn_list_82.data")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(dir+"/txn_list_82.data", buf, 0777)
+	if err != nil {
+		return nil, err
+	}
+	buf, err = ioutil.ReadFile("./txn_per_blk_82.data")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(dir+"/txn_per_blk_82.data", buf, 0777)
 	if err != nil {
 		return nil, err
 	}
@@ -830,7 +847,7 @@ func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig) e
 }
 
 func readAuxFile(txnList []int, txnPerBlkList []int) error {
-	f, err := os.Open("./txn_list_61.data")
+	f, err := os.Open("./txn_list_82.data")
 	if err != nil {
 		return err
 	}
@@ -844,7 +861,7 @@ func readAuxFile(txnList []int, txnPerBlkList []int) error {
 	}
 	f.Close()
 
-	f, err = os.Open("./txn_per_blk_61.data")
+	f, err = os.Open("./txn_per_blk_82.data")
 	if err != nil {
 		return err
 	}

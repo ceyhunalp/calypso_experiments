@@ -11,6 +11,7 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
+	"io/ioutil"
 	"os"
 	"strconv"
 )
@@ -54,6 +55,22 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	sc := &onet.SimulationConfig{}
 	s.CreateRoster(sc, hosts, 2000)
 	err := s.CreateTree(sc)
+	if err != nil {
+		return nil, err
+	}
+	buf, err := ioutil.ReadFile("./txn_list_82.data")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(dir+"/txn_list_82.data", buf, 0777)
+	if err != nil {
+		return nil, err
+	}
+	buf, err = ioutil.ReadFile("./txn_per_blk_82.data")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(dir+"/txn_per_blk_82.data", buf, 0777)
 	if err != nil {
 		return nil, err
 	}
