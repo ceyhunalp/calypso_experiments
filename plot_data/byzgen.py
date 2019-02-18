@@ -2,14 +2,10 @@
 from matplotlib.ticker import ScalarFormatter
 import numpy as np
 import matplotlib.pyplot as plt
-from colors import *
 
 yel = "#FFB300"
 red = "#E91E63"
 blu = "#3F51B5"
-# yel = "#F9A825"
-# red = "#AD1457"
-# blu = "#283593"
 
 raw_data = read_datafile('plot.csv')
 

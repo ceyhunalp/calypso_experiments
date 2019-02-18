@@ -1,6 +1,7 @@
 *.swp
 *.iml
 .tags*
+/**/*.pyc
 /**/*.csv
 /**/*.data
 /**/*.eps
