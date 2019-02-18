@@ -1,5 +1,0 @@
-batchsize,CreateWriteTxn_wall_avg,CreateReadTxn_wall_avg
-4,0.150341,0.059827
-16,0.583538,0.199426
-64,2.323689,0.704151
-256,9.693228,3.083744

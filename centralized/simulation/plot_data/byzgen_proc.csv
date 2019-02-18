@@ -1,3 +1,0 @@
-numreadtransactions,numtransactions,numwritetransactions,Byzgen_wall_sum,WriteTxn_wall_avg,ReadTxn_wall_avg,Recover_wall_avg,WriteTxn_wall_sum,ReadTxn_wall_sum,Recover_wall_sum,ReadTotal
-1470,3291,1821,92.45365,0.040438,0.01034,0.002192,73.638208,15.1992,3.222829,18.422029
-,,,,,,,0.040438335,,,0.012531993
