@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	//"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
@@ -14,7 +13,6 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
-	//"math/rand"
 	"io/ioutil"
 	"os"
 	"strconv"

@@ -1,7 +1,15 @@
 #!/usr/bin/env python
+from matplotlib.ticker import ScalarFormatter
 import numpy as np
 import matplotlib.pyplot as plt
 from colors import *
+
+yel = "#FFB300"
+red = "#E91E63"
+blu = "#3F51B5"
+# yel = "#F9A825"
+# red = "#AD1457"
+# blu = "#283593"
 
 raw_data = read_datafile('plot.csv')
 
@@ -12,21 +20,23 @@ fully_data = raw_data[:,3]
 index = np.arange(2)
 bwid = 0.1
 
-fig, ax = plt.subplots()
-rects1 = ax.bar(index-bwid, fully_data, bwid, color=cig_orange, bottom=0.001, label='Fully')
-rects2 = ax.bar(index, semi_data, bwid, color=pie_green, bottom=0.001, label='Semi')
-rects3 = ax.bar(index+bwid, caly_data, bwid, color=warm_purp, bottom=0.001, label='Calypso')
+plt.bar(index-bwid, fully_data, bwid, color=yel, bottom=0.01,
+        label='Fully-centralized')
+plt.bar(index, semi_data, bwid, color=red, bottom=0.01,
+        label='Semi-centralized')
+plt.bar(index+bwid, caly_data, bwid, color=blu, bottom=0.01, label='Calypso')
 
-ax.set_xticks(index+bwid/3)
-ax.set_xticklabels(('Write', 'Read'))
-# ax.set_yscale('log')
-# ax.set_ylim([0.001,10])
+plt.yscale('log')
+plt.ylabel('Time (sec)', fontsize=fs_label)
+plt.xlabel('Transaction type', fontsize=fs_label)
+plt.grid(True)
+plt.ylim((0,20))
 
-ax.set_xlabel('Transaction', fontsize=14)
-ax.set_ylabel('Time (s)', fontsize=14)
-ax.legend(loc=9)
-# ax.set_ylim((0,10))
-# ax.grid(True)
-# ax.set_yscale('log')
+y_ticks = ['0.01','0.01','0.1','1','10']
 
-save("byzgen-nolog.eps")
+plt.axes().set_xticks(index+bwid/3)
+plt.axes().set_xticklabels(('Write', 'Read'))
+plt.gca().set_yticklabels(y_ticks)
+plt.legend(loc=9)
+
+save("byzgen-log.eps")

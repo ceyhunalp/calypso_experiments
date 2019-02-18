@@ -1,0 +1,10 @@
+Simulation = "SimpleCalypso"
+Servers = 16
+Bf = 6
+Rounds = 1
+RunWait =  "6000s"
+Suite = "Ed25519"
+
+Hosts, BatchSize
+16, 4
+16, 32

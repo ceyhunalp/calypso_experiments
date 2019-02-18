@@ -13,9 +13,8 @@ caly_data = read_datafile('firelotto_calypso.csv')
 # x is day #
 # num_txn is the number of txns for that day
 
-dark_1 = "#880e4f"
-dark_2 = "#43a047"
-
+dark_1 = "#7b1fa2"
+dark_2 = "#ff8f00"
 
 x = caly_data[:,0]
 num_txn = caly_data[:,1]
@@ -29,11 +28,11 @@ tournament_time_mask=np.isfinite(tournament_time)
 caly_time_mask=np.isfinite(caly_time)
 
 plt.plot(x[tournament_time_mask],tournament_time[tournament_time_mask],
-        linestyle='--', label="Tournament", marker='s', markersize=8, color=dark_2)
+        linestyle='--', label="Tournament", marker='s', markersize=8, color=dark_1)
 plt.plot(x[caly_time_mask],caly_time[caly_time_mask], linestyle='--',
-        label="Calypso", marker='o', markersize=8, color=dark_1)
+        label="Calypso", marker='o', markersize=8, color=dark_2)
 
-plt.ylabel('Latency (s)', fontsize=fs_label)
+plt.ylabel('Time (sec)', fontsize=fs_label)
 plt.xlabel('Day', fontsize=fs_label)
 # plt.xlabel('Number of participants', fontsize=fs_label)
 plt.grid(True)

@@ -6,8 +6,8 @@ from colors import *
 dark_1 = "#880e4f"
 dark_2 = "#43a047"
 
-zero_data = read_datafile('tournament_lottery.csv')
-cali_data = read_datafile('calypso_lottery.csv')
+zero_data = read_datafile('tournament_lottery_4to128.csv')
+cali_data = read_datafile('calypso_lottery_4to128.csv')
 
 x = zero_data[:,0]
 zero_time = zero_data[:,1]
@@ -24,12 +24,12 @@ plt.plot(x[cali_time_mask],cali_time[cali_time_mask],linestyle='--',
         label="Calypso", marker = 'o', color=dark_1)
 
 
-plt.xscale('log')
-plt.ylabel('Latency (s)', fontsize=fs_label)
+# plt.xscale('log')
+plt.ylabel('Latency (sec)', fontsize=fs_label)
 plt.xlabel('Number of participants', fontsize=fs_label)
 plt.grid(True)
 plt.ylim((0,250))
-plt.xlim((1,150))
+plt.xlim((1,130))
 plt.legend(loc=4, fontsize=fs_axis)
 
 x_ticks = []

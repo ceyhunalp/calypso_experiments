@@ -3,14 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from colors import *
 
-tour_data = read_datafile('tournament_interaction.csv')
-caly_data = read_datafile('calypso_interaction.csv')
+tour_data = read_datafile('tint_4_128.csv')
+caly_data = read_datafile('cint_4_128.csv')
+# tour_data = read_datafile('tournament_interaction.csv')
+# caly_data = read_datafile('calypso_interaction.csv')
 
 
 dark_1 = "#7b1fa2"
 dark_2 = "#ff8f00"
 
 x = tour_data[:,0]
+print(x)
 x_ticks = []
 for xx in x:
     x_ticks.append(int(xx))
@@ -25,53 +28,33 @@ plt.plot(x, caly_time, linestyle='-', color=dark_2,
         marker='o', markersize=8, label='Calypso')
 
 
-plt.xscale('log')
-plt.ylabel('Time (s)', fontsize=14)
+# plt.xscale('log')
+plt.ylabel('Time (sec)', fontsize=14)
 plt.ylim((0,1500))
-plt.xlim((3,300))
+plt.xlim((0,130))
 plt.grid(True)
 ax1.set_xticks(x_ticks)
 ax1.set_xticklabels(x_ticks)
-ax1.legend(loc=0, fontsize=16)
+ax1.legend(loc=0, fontsize=14)
 
-tourb_data = read_datafile('tournament_bytes.csv')
-calyb_data = read_datafile('calypso_bytes.csv')
+tourb_data = read_datafile('tbytes_4to128.csv')
+calyb_data = read_datafile('cbytes_4to128.csv')
+# tourb_data = read_datafile('tournament_bytes.csv')
+# calyb_data = read_datafile('calypso_bytes.csv')
 tour_bytes = tourb_data[:,1]
 caly_bytes = calyb_data[:,1]
+print(tour_bytes)
 
 ax2 = plt.subplot(212, sharex=ax1)
 plt.plot(x, tour_bytes, color=dark_1, linestyle='-', marker='s', markersize=8, label='Tournament')
 plt.plot(x, caly_bytes, color=dark_2, linestyle='-', marker='o', markersize=8, label='Calypso')
-plt.ylabel('Communication (KB)', fontsize=14)
-ax2.set_ylim((0,310))
-ax2.set_xlim((3,300))
+plt.ylabel('Bandwidth (KB)', fontsize=14)
+ax2.set_ylim((0,160))
+ax2.set_xlim((0,130))
 ax2.set_xticks(x_ticks)
 ax2.set_xticklabels(x_ticks)
-ax2.legend(loc=0, fontsize=16)
+ax2.legend(loc=0, fontsize=14)
 plt.xlabel('Number of participants', fontsize=14)
 plt.grid(True)
-
-
-# x = tourb_data[:,0]
-# print(x)
-# x_ticks = []
-# for xx in x:
-    # x_ticks.append(int(xx))
-
-# tour_bytes = tourb_data[:,1]
-# caly_bytes = calyb_data[:,1]
-
-# ax2.plot(x, tour_bytes, color='yellow', linestyle='-', marker='o', label='Tournament')
-# ax2.plot(x, caly_bytes, color='purple', linestyle='-', marker='o', label='Calypso')
-
-# ax2.set_xlabel('Number of participants', fontsize=14)
-# ax2.set_ylabel('bytes', fontsize=14)
-# ax2.set_xticks(x_ticks)
-# ax2.set_xticklabels(x_ticks)
-# ax2.set_xlim((0,512))
-# ax2.set_ylim((0,300000))
-# ax2.set_xscale('log')
-# ax2.grid(True)
-# ax2.legend(loc=0, fontsize=16)
 
 save("client_interaction.eps")

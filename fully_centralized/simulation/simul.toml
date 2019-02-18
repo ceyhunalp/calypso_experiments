@@ -1,0 +1,17 @@
+Simulation = "CentralizedCalypso"
+Servers = 1
+Bf = 1
+Rounds = 3
+Delay = 100
+Bandwidth = 100
+RunWait =  "6000s"
+Suite = "Ed25519"
+
+Hosts, BatchSize
+1, 1
+#1, 4
+#1, 16 
+#1, 64
+#1, 256
+#1, 1024
+#1, 4096
