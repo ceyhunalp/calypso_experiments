@@ -1,4 +1,4 @@
-Simulation = "SimpleCalypso"
+Simulation = "SemiCentralized"
 Servers = 16
 Bf = 6
 Rounds = 1

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
-	tournament "github.com/ceyhunalp/centralized_calypso/tournament_lottery"
+	tournament "github.com/ceyhunalp/calypso_experiments/tournament_lottery"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/onet"

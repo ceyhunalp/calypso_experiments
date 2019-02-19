@@ -11,8 +11,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ceyhunalp/centralized_calypso"
-	"github.com/ceyhunalp/centralized_calypso/protocol"
+	"github.com/ceyhunalp/calypso_experiments"
+	"github.com/ceyhunalp/calypso_experiments/protocol"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"

@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"github.com/BurntSushi/toml"
-	"github.com/ceyhunalp/centralized_calypso/centralized"
-	"github.com/ceyhunalp/centralized_calypso/util"
+	"github.com/ceyhunalp/calypso_experiments/centralized"
+	"github.com/ceyhunalp/calypso_experiments/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet"

@@ -2,7 +2,7 @@ package main
 
 import (
 	// Service needs to be imported here to be instantiated.
-	_ "github.com/ceyhunalp/centralized_calypso/centralized/service"
+	_ "github.com/ceyhunalp/calypso_experiments/centralized/service"
 	"github.com/dedis/onet/simul"
 )
 

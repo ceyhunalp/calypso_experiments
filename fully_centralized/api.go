@@ -2,8 +2,8 @@ package centralized
 
 import (
 	"encoding/hex"
-	fc "github.com/ceyhunalp/centralized_calypso/fully_centralized/service"
-	"github.com/ceyhunalp/centralized_calypso/util"
+	fc "github.com/ceyhunalp/calypso_experiments/fully_centralized/service"
+	"github.com/ceyhunalp/calypso_experiments/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/sign/schnorr"

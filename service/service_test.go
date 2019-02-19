@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/ceyhunalp/centralized_calypso"
+	"github.com/ceyhunalp/calypso_experiments"
 	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"

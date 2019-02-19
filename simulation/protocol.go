@@ -24,7 +24,7 @@ import (
 	"strconv"
 
 	"github.com/BurntSushi/toml"
-	"github.com/ceyhunalp/centralized_calypso/protocol"
+	"github.com/ceyhunalp/calypso_experiments/protocol"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"

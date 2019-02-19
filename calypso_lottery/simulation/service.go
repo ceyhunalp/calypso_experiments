@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/BurntSushi/toml"
-	lottery "github.com/ceyhunalp/centralized_calypso/calypso_lottery"
+	lottery "github.com/ceyhunalp/calypso_experiments/calypso_lottery"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/calypso"
@@ -25,7 +25,6 @@ type SimulationService struct {
 	onet.SimulationBFTree
 	NumTransactions int
 	NumLotteries    int
-	//NumParticipant int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -393,19 +392,18 @@ func (s *SimulationService) runMultipleLottery(config *onet.SimulationConfig, by
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	//return s.runCalypsoLottery(config)
-	byzd, err := lottery.SetupByzcoin(config.Roster)
-	if err != nil {
-		log.Errorf("Setting up Byzcoin failed: %v", err)
-		return err
-	}
+	return s.runCalypsoLottery(config)
 
-	mlt := monitor.NewTimeMeasure("multiple_lottery")
-	for i := 1; i < s.NumLotteries; i++ {
-		go s.runMultipleLottery(config, byzd)
-	}
-	s.runMultipleLottery(config, byzd)
-	mlt.Record()
-
-	return nil
+	//byzd, err := lottery.SetupByzcoin(config.Roster)
+	//if err != nil {
+	//log.Errorf("Setting up Byzcoin failed: %v", err)
+	//return err
+	//}
+	//mlt := monitor.NewTimeMeasure("multiple_lottery")
+	//for i := 1; i < s.NumLotteries; i++ {
+	//go s.runMultipleLottery(config, byzd)
+	//}
+	//s.runMultipleLottery(config, byzd)
+	//mlt.Record()
+	//return nil
 }

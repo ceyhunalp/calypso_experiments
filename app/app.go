@@ -8,7 +8,7 @@ import (
 	"errors"
 	"os"
 
-	template "github.com/ceyhunalp/centralized_calypso"
+	template "github.com/ceyhunalp/calypso_experiments"
 
 	"github.com/dedis/onet/app"
 

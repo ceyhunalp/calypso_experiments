@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	// We need to include the service so it is started.
-	"github.com/ceyhunalp/centralized_calypso"
-	_ "github.com/ceyhunalp/centralized_calypso/service"
+	"github.com/ceyhunalp/calypso_experiments"
+	_ "github.com/ceyhunalp/calypso_experiments/service"
 	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"

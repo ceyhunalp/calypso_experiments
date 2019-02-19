@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/ceyhunalp/centralized_calypso/util"
+	"github.com/ceyhunalp/calypso_experiments/util"
 	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"

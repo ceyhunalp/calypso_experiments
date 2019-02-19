@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python parser.py deterlab.csv 1 | sort -t',' -k1 -n > parsed_byzgen.csv
+#python parser.py deterlab.csv 1 | sort -t',' -k1 -n > parsed_byzgen.csv
 #python parser.py byzgen_11.csv 1 | sort -t',' -k1 -n > parsed/parsed_11.csv
 #python parser.py byzgen_12.csv 1 | sort -t',' -k1 -n > parsed/parsed_12.csv
 #python parser.py byzgen_21.csv 1 | sort -t',' -k1 -n > parsed/parsed_21.csv

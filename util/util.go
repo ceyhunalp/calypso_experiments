@@ -127,7 +127,7 @@ func symEncrypt(msg []byte, key []byte) ([]byte, error) {
 	return encData, nil
 }
 
-func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point, isSimple bool) (*WriteData, error) {
+func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point, isSemi bool) (*WriteData, error) {
 	var symKey [16]byte
 	random.Bytes(symKey[:], random.New())
 	encData, err := symEncrypt(data, symKey[:])
@@ -145,7 +145,7 @@ func CreateWriteData(data []byte, reader kyber.Point, serverKey kyber.Point, isS
 		Reader:   reader,
 		//EncReader: encReader,
 	}
-	if isSimple {
+	if isSemi {
 		readerBytes, err := reader.MarshalBinary()
 		if err != nil {
 			log.Errorf("CreateWriteData error: %v", err)

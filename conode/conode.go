@@ -24,9 +24,9 @@ import (
 	"github.com/dedis/onet/log"
 	cli "gopkg.in/urfave/cli.v1"
 	// Import your service:
-	_ "github.com/ceyhunalp/centralized_calypso/centralized/service"
-	_ "github.com/ceyhunalp/centralized_calypso/simple/service"
-	_ "github.com/ceyhunalp/centralized_calypso/zero_lottery/service"
+	_ "github.com/ceyhunalp/calypso_experiments/fully_centralized/service"
+	_ "github.com/ceyhunalp/calypso_experiments/semi_centralized/service"
+	_ "github.com/ceyhunalp/calypso_experiments/tournament_lottery/service"
 	// Here you can import any other needed service for your conode.
 	// For example, if your service needs cosi available in the server
 	// as well, uncomment this:

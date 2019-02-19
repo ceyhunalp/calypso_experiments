@@ -2,8 +2,8 @@ package semicentralized
 
 import (
 	"encoding/hex"
-	sc "github.com/ceyhunalp/centralized_calypso/semi_centralized/service"
-	"github.com/ceyhunalp/centralized_calypso/util"
+	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized/service"
+	"github.com/ceyhunalp/calypso_experiments/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/calypso"

@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"github.com/BurntSushi/toml"
-	sc "github.com/ceyhunalp/centralized_calypso/semi_centralized"
-	"github.com/ceyhunalp/centralized_calypso/util"
+	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
+	"github.com/ceyhunalp/calypso_experiments/util"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet"
@@ -90,7 +90,7 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 	return s.SimulationBFTree.Node(config)
 }
 
-func (s *SimulationService) runSingleSimpleSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
+func (s *SimulationService) runSemiCentralizedSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
 	wdList := make([]*util.WriteData, s.BatchSize)
 	writeTxnList := make([]*sc.TransactionReply, s.BatchSize)
 	readTxnList := make([]*sc.TransactionReply, s.BatchSize)

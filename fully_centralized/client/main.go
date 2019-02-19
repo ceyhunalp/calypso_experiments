@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	fc "github.com/ceyhunalp/centralized_calypso/fully_centralized"
-	"github.com/ceyhunalp/centralized_calypso/util"
+	fc "github.com/ceyhunalp/calypso_experiments/fully_centralized"
+	"github.com/ceyhunalp/calypso_experiments/util"
 	"github.com/dedis/cothority"
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet"

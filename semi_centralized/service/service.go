@@ -109,7 +109,7 @@ func (s *Service) tryLoad() error {
 // be stored in memory for tests and simulations, and on disk for real deployments.
 func newSemiCentralizedService(c *onet.Context) (onet.Service, error) {
 	log.Print("In NewSemiCentralizedService")
-	db, bucket := c.GetAdditionalBucket([]byte("simplecalypsotransactions"))
+	db, bucket := c.GetAdditionalBucket([]byte("semicentralizedtransactions"))
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
 		db:               NewSemiCentralizedDB(db, bucket),

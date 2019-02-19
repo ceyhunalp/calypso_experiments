@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ceyhunalp/centralized_calypso/protocol"
+	"github.com/ceyhunalp/calypso_experiments/protocol"
 	"github.com/dedis/kyber/suites"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
