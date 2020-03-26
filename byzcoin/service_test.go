@@ -3,7 +3,7 @@ package byzcoin
 import (
 	"testing"
 
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/onet/log"
 )
 
 func TestMain(m *testing.M) {

@@ -13,9 +13,9 @@ import (
 
 	"github.com/ceyhunalp/calypso_experiments"
 	"github.com/ceyhunalp/calypso_experiments/protocol"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/network"
+	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/log"
+	"go.dedis.ch/onet/network"
 )
 
 // Used for tests

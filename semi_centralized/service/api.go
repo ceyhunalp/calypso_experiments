@@ -9,9 +9,9 @@ This part of the service runs on the client or the app.
 */
 
 import (
-	"github.com/dedis/cothority"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/cothority"
+	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/log"
 )
 
 // Client is a structure to communicate with the template

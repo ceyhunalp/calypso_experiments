@@ -2,12 +2,13 @@ package centralized
 
 import (
 	"encoding/hex"
+
 	fc "github.com/ceyhunalp/calypso_experiments/fully_centralized/service"
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"github.com/dedis/cothority"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/sign/schnorr"
-	"github.com/dedis/onet"
+	"go.dedis.ch/cothority/v3"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/onet/v3"
 )
 
 func CreateWriteTxn(roster *onet.Roster, wd *util.WriteData) (*util.WriteData, error) {

@@ -16,12 +16,12 @@ import (
 	"os"
 	"path"
 
-	"github.com/dedis/cothority"
-	_ "github.com/dedis/cothority/byzcoin"
-	_ "github.com/dedis/cothority/calypso"
-	"github.com/dedis/onet/app"
-	"github.com/dedis/onet/cfgpath"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/cothority"
+	_ "go.dedis.ch/cothority/byzcoin"
+	_ "go.dedis.ch/cothority/calypso"
+	"go.dedis.ch/onet/app"
+	"go.dedis.ch/onet/cfgpath"
+	"go.dedis.ch/onet/log"
 	cli "gopkg.in/urfave/cli.v1"
 	// Import your service:
 	_ "github.com/ceyhunalp/calypso_experiments/fully_centralized/service"
@@ -30,7 +30,7 @@ import (
 	// Here you can import any other needed service for your conode.
 	// For example, if your service needs cosi available in the server
 	// as well, uncomment this:
-	//_ "github.com/dedis/cothority/cosi/service"
+	//_ "go.dedis.ch/cothority/cosi/service"
 )
 
 func main() {

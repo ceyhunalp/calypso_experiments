@@ -2,13 +2,13 @@ package lottery
 
 import (
 	"crypto/sha256"
-	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/cothority/calypso"
-	"github.com/dedis/cothority/darc"
-	"github.com/dedis/cothority/darc/expression"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/cothority/byzcoin"
+	"go.dedis.ch/cothority/calypso"
+	"go.dedis.ch/cothority/darc"
+	"go.dedis.ch/cothority/darc/expression"
+	"go.dedis.ch/kyber/util/random"
+	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/log"
 	"time"
 )
 

@@ -2,12 +2,12 @@ package tournament
 
 import (
 	"crypto/sha256"
-	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/cothority/darc"
-	"github.com/dedis/kyber/util/random"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/protobuf"
+	"go.dedis.ch/cothority/byzcoin"
+	"go.dedis.ch/cothority/darc"
+	"go.dedis.ch/kyber/util/random"
+	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/log"
+	"go.dedis.ch/protobuf"
 	"time"
 )
 

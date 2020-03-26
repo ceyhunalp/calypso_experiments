@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/ceyhunalp/calypso_experiments"
-	"github.com/dedis/kyber/suites"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/kyber/suites"
+	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/log"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,10 +3,10 @@
 package main
 
 import (
-	"github.com/dedis/cothority"
-	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/pairing"
-	"github.com/dedis/kyber/pairing/bn256"
+	"go.dedis.ch/cothority"
+	"go.dedis.ch/kyber"
+	"go.dedis.ch/kyber/pairing"
+	"go.dedis.ch/kyber/pairing/bn256"
 )
 
 func init() {

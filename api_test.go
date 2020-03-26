@@ -8,9 +8,9 @@ import (
 	// We need to include the service so it is started.
 	"github.com/ceyhunalp/calypso_experiments"
 	_ "github.com/ceyhunalp/calypso_experiments/service"
-	"github.com/dedis/kyber/suites"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/kyber/suites"
+	"go.dedis.ch/onet"
+	"go.dedis.ch/onet/log"
 )
 
 var tSuite = suites.MustFind("Ed25519")

@@ -2,16 +2,17 @@ package main
 
 import (
 	"bufio"
-	"github.com/BurntSushi/toml"
-	"github.com/ceyhunalp/calypso_experiments/centralized"
-	"github.com/ceyhunalp/calypso_experiments/util"
-	"github.com/dedis/cothority"
-	"github.com/dedis/kyber"
-	"github.com/dedis/onet"
-	"github.com/dedis/onet/log"
-	"github.com/dedis/onet/simul/monitor"
 	"os"
 	"strconv"
+
+	"github.com/BurntSushi/toml"
+	centralized "github.com/ceyhunalp/calypso_experiments/fully_centralized"
+	"github.com/ceyhunalp/calypso_experiments/util"
+	"go.dedis.ch/cothority/v3"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/simul/monitor"
 )
 
 /*
@@ -197,7 +198,7 @@ func (s *SimulationService) runCentralizedByzgen(config *onet.SimulationConfig) 
 	return nil
 }
 
-func (s *SimulationService) runCentralized(config *onet.SimulationConfig) error {
+func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) error {
 	var err error
 	log.Info("Total # of rounds is:", s.Rounds)
 	serverPk := config.Roster.Publics()[0]
@@ -254,7 +255,7 @@ func (s *SimulationService) runCentralized(config *onet.SimulationConfig) error 
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	err := s.runCentralizedByzgen(config)
+	err := s.runMicrobenchmark(config)
 	if err != nil {
 		log.Info("RunCentralized error:", err)
 	}

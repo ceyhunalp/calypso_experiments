@@ -2,9 +2,9 @@ package tournament
 
 import (
 	"errors"
-	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/cothority/darc"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/cothority/byzcoin"
+	"go.dedis.ch/cothority/darc"
+	"go.dedis.ch/onet/log"
 )
 
 var ContractLotteryStoreID = "tournamentLotteryStore"
