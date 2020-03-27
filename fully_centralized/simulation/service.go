@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"os"
 	"strconv"
 
@@ -19,11 +20,10 @@ import (
  * Defines the simulation for the service-template
  */
 
-//const FIXED_COUNT = 10
 const DATA_SIZE = 1024 * 1024
 
 func init() {
-	onet.SimulationRegister("CentralizedCalypsoByzgen", NewCentralizedCalypsoService)
+	onet.SimulationRegister("CentralizedCalypso", NewCentralizedCalypsoService)
 }
 
 // SimulationService only holds the BFTree simulation
@@ -210,6 +210,8 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 	readKList := make([]kyber.Point, s.BatchSize)
 	readCList := make([]kyber.Point, s.BatchSize)
 
+	log.Info("Batch size is:", s.BatchSize)
+
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
 
@@ -218,11 +220,11 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 
 		for i := 0; i < s.BatchSize; i++ {
 			data := make([]byte, DATA_SIZE)
-			for j := 0; j < DATA_SIZE; j++ {
-				data[j] = byte(i)
-			}
+			rand.Read(data)
+			//log.LLvlf1("New data is %x", string(data))
 			wdList[i], err = util.CreateWriteData(data, rPk, serverPk, false)
 			if err != nil {
+				log.Errorf("CreateWriteData failed: %v", err)
 				return err
 			}
 		}
@@ -231,6 +233,7 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 		for i := 0; i < s.BatchSize; i++ {
 			writeTxnList[i], err = centralized.CreateWriteTxn(config.Roster, wdList[i])
 			if err != nil {
+				log.Errorf("CreateWriteTxn failed: %v", err)
 				return err
 			}
 		}
@@ -240,12 +243,15 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 		for i := 0; i < s.BatchSize; i++ {
 			readKList[i], readCList[i], err = centralized.CreateReadTxn(config.Roster, wdList[i].StoredKey, rSk)
 			if err != nil {
+				log.Errorf("CreateReadTxn failed: %v", err)
 				return err
 			}
 			_, err := util.RecoverData(wdList[i].Data, rSk, readKList[i], readCList[i])
 			if err != nil {
+				log.Errorf("RecoverData failed: %v", err)
 				return err
 			}
+			//log.LLvlf1("Recoverer data is %x", string(data))
 		}
 		crt.Record()
 	}
@@ -257,7 +263,7 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	err := s.runMicrobenchmark(config)
 	if err != nil {
-		log.Info("RunCentralized error:", err)
+		log.Errorf("RunCentralized error: %v", err)
 	}
 	return nil
 }

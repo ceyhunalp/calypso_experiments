@@ -3,20 +3,21 @@ package main
 import (
 	"bufio"
 	"errors"
-	"github.com/BurntSushi/toml"
-	"go.dedis.ch/cothority"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/calypso"
-	"go.dedis.ch/cothority/darc"
-	"go.dedis.ch/cothority/darc/expression"
-	"go.dedis.ch/kyber/util/random"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/simul/monitor"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/BurntSushi/toml"
+	"go.dedis.ch/cothority/v3"
+	"go.dedis.ch/cothority/v3/byzcoin"
+	"go.dedis.ch/cothority/v3/calypso"
+	"go.dedis.ch/cothority/v3/darc"
+	"go.dedis.ch/cothority/v3/darc/expression"
+	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/simul/monitor"
 )
 
 /*
