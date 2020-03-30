@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/ceyhunalp/calypso_experiments/protocol"
-	"go.dedis.ch/kyber/suites"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/network"
+	"github.com/dedis/kyber/suites"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 	"github.com/stretchr/testify/require"
 )
 

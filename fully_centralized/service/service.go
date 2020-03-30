@@ -9,9 +9,9 @@ import (
 	"errors"
 	"sync"
 
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
-	"go.dedis.ch/onet/v3/network"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 )
 
 // ServiceName is used for registration on the onet.

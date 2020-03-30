@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"go.dedis.ch/cothority/v3"
-	"go.dedis.ch/cothority/v3/byzcoin"
-	"go.dedis.ch/cothority/v3/calypso"
-	"go.dedis.ch/cothority/v3/darc"
-	"go.dedis.ch/cothority/v3/darc/expression"
-	"go.dedis.ch/kyber/v3/util/random"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
-	"go.dedis.ch/onet/v3/simul/monitor"
+	"github.com/dedis/cothority"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/calypso"
+	"github.com/dedis/cothority/darc"
+	"github.com/dedis/cothority/darc/expression"
+	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 /*

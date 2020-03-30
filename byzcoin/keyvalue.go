@@ -3,9 +3,9 @@ package byzcoin
 import (
 	"errors"
 
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/darc"
-	"go.dedis.ch/protobuf"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/darc"
+	"github.com/dedis/protobuf"
 )
 
 // The value contract can simply store a value in an instance and serves

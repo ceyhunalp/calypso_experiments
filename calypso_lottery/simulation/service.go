@@ -4,12 +4,12 @@ import (
 	"errors"
 	"github.com/BurntSushi/toml"
 	lottery "github.com/ceyhunalp/calypso_experiments/calypso_lottery"
-	"go.dedis.ch/cothority"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/calypso"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/simul/monitor"
+	"github.com/dedis/cothority"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/calypso"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 /*

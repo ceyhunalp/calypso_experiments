@@ -9,10 +9,10 @@ import (
 
 	fc "github.com/ceyhunalp/calypso_experiments/fully_centralized"
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority/v3"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
+	"github.com/dedis/cothority"
+	"github.com/dedis/kyber"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
 )
 
 func runFullyCentralizedCalypso(roster *onet.Roster, serverKey kyber.Point, data []byte) error {

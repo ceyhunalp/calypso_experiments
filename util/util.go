@@ -12,13 +12,13 @@ import (
 	"io"
 	"os"
 
-	"go.dedis.ch/cothority/v3"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/util/encoding"
-	"go.dedis.ch/kyber/v3/util/random"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/app"
-	"go.dedis.ch/onet/v3/log"
+	"github.com/dedis/cothority"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/util/encoding"
+	"github.com/dedis/kyber/util/random"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/app"
+	"github.com/dedis/onet/log"
 )
 
 const nonceLen = 12

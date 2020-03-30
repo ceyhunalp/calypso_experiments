@@ -25,9 +25,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/ceyhunalp/calypso_experiments/protocol"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/simul/monitor"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 func init() {

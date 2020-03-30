@@ -5,7 +5,7 @@ import (
 
 	"os"
 
-	"go.dedis.ch/onet/log"
+	"github.com/dedis/onet/log"
 )
 
 func TestMain(m *testing.M) {

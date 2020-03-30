@@ -7,12 +7,12 @@ import (
 	"errors"
 
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority/v3"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/sign/schnorr"
-	"go.dedis.ch/onet/v3/log"
-	"go.dedis.ch/onet/v3/network"
-	bolt "go.etcd.io/bbolt"
+	bolt "github.com/coreos/bbolt"
+	"github.com/dedis/cothority"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/network"
 )
 
 type CentralizedCalypsoDB struct {

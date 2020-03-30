@@ -2,18 +2,19 @@ package semicentralized
 
 import (
 	"encoding/hex"
+	"time"
+
 	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized/service"
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/calypso"
-	"go.dedis.ch/cothority/darc"
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/kyber/sign/schnorr"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/protobuf"
-	"time"
+	"github.com/dedis/cothority"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/calypso"
+	"github.com/dedis/cothority/darc"
+	"github.com/dedis/kyber"
+	"github.com/dedis/kyber/sign/schnorr"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/protobuf"
 )
 
 type TransactionReply struct {

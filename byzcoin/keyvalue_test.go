@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"go.dedis.ch/cothority"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/darc"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/protobuf"
+	"github.com/dedis/cothority"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/darc"
+	"github.com/dedis/onet"
+	"github.com/dedis/protobuf"
 	"github.com/stretchr/testify/require"
 )
 

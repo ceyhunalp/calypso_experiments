@@ -9,11 +9,11 @@ import (
 	"github.com/BurntSushi/toml"
 	centralized "github.com/ceyhunalp/calypso_experiments/fully_centralized"
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority/v3"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
-	"go.dedis.ch/onet/v3/simul/monitor"
+	"github.com/dedis/cothority"
+	"github.com/dedis/kyber"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 /*
@@ -25,7 +25,7 @@ const DATA_SIZE = 1024 * 1024
 //const FIXED_COUNT int = 10
 
 func init() {
-	onet.SimulationRegister("CentralizedCalypso", NewCentralizedCalypsoService)
+	onet.SimulationRegister("FullyMicro", NewCentralizedCalypsoService)
 }
 
 // SimulationService only holds the BFTree simulation
@@ -314,7 +314,6 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	err := s.runMicrobenchmark(config)
-	//err := s.runDecrypt(config)
 	if err != nil {
 		log.Errorf("RunCentralized error: %v", err)
 	}

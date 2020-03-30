@@ -3,7 +3,7 @@ package main
 import (
 	// Service needs to be imported here to be instantiated.
 	_ "github.com/ceyhunalp/calypso_experiments/fully_centralized/service"
-	"go.dedis.ch/onet/v3/simul"
+	"github.com/dedis/onet/simul"
 )
 
 func main() {

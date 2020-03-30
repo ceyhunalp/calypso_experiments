@@ -2,9 +2,9 @@ package service
 
 import (
 	tournament "github.com/ceyhunalp/calypso_experiments/tournament_lottery"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
 )
 
 func init() {

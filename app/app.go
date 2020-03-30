@@ -10,9 +10,9 @@ import (
 
 	template "github.com/ceyhunalp/calypso_experiments"
 
-	"go.dedis.ch/onet/app"
+	"github.com/dedis/onet/app"
 
-	"go.dedis.ch/onet/log"
+	"github.com/dedis/onet/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

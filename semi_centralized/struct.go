@@ -1,11 +1,11 @@
 package semicentralized
 
 import (
-	"go.dedis.ch/cothority/v3/byzcoin"
-	"go.dedis.ch/cothority/v3/calypso"
-	"go.dedis.ch/cothority/v3/darc"
-	"go.dedis.ch/cothority/v3/darc/expression"
-	"go.dedis.ch/onet"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/calypso"
+	"github.com/dedis/cothority/darc"
+	"github.com/dedis/cothority/darc/expression"
+	"github.com/dedis/onet"
 )
 
 type ByzcoinData struct {

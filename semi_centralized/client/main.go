@@ -10,9 +10,9 @@ import (
 
 	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
+	"github.com/dedis/kyber"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
 )
 
 func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, byzd *sc.ByzcoinData, data []byte) error {

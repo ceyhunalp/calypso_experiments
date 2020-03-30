@@ -4,18 +4,17 @@ import (
 	"bufio"
 	"crypto/rand"
 	"errors"
-	"io/ioutil"
 	"os"
 	"strconv"
 
 	"github.com/BurntSushi/toml"
 	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority/v3/byzcoin"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/onet/v3"
-	"go.dedis.ch/onet/v3/log"
-	"go.dedis.ch/onet/v3/simul/monitor"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/kyber"
+	"github.com/dedis/onet"
+	"github.com/dedis/onet/log"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 /*
@@ -26,7 +25,7 @@ const DATA_SIZE = 1024 * 1024
 const FIXED_COUNT int = 10
 
 func init() {
-	onet.SimulationRegister("SemiCentralized", NewSemiCentralizedService)
+	onet.SimulationRegister("SemiMicro", NewSemiCentralizedService)
 }
 
 // SimulationService only holds the BFTree simulation
@@ -60,22 +59,22 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	if err != nil {
 		return nil, err
 	}
-	buf, err := ioutil.ReadFile("./txn_list_82.data")
-	if err != nil {
-		return nil, err
-	}
-	err = ioutil.WriteFile(dir+"/txn_list_82.data", buf, 0777)
-	if err != nil {
-		return nil, err
-	}
-	buf, err = ioutil.ReadFile("./txn_per_blk_82.data")
-	if err != nil {
-		return nil, err
-	}
-	err = ioutil.WriteFile(dir+"/txn_per_blk_82.data", buf, 0777)
-	if err != nil {
-		return nil, err
-	}
+	//buf, err := ioutil.ReadFile("./txn_list_82.data")
+	//if err != nil {
+	//return nil, err
+	//}
+	//err = ioutil.WriteFile(dir+"/txn_list_82.data", buf, 0777)
+	//if err != nil {
+	//return nil, err
+	//}
+	//buf, err = ioutil.ReadFile("./txn_per_blk_82.data")
+	//if err != nil {
+	//return nil, err
+	//}
+	//err = ioutil.WriteFile(dir+"/txn_per_blk_82.data", buf, 0777)
+	//if err != nil {
+	//return nil, err
+	//}
 	return sc, nil
 }
 
