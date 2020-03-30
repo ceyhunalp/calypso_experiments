@@ -1,10 +1,10 @@
 package semicentralized
 
 import (
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/calypso"
-	"go.dedis.ch/cothority/darc"
-	"go.dedis.ch/cothority/darc/expression"
+	"go.dedis.ch/cothority/v3/byzcoin"
+	"go.dedis.ch/cothority/v3/calypso"
+	"go.dedis.ch/cothority/v3/darc"
+	"go.dedis.ch/cothority/v3/darc/expression"
 	"go.dedis.ch/onet"
 )
 

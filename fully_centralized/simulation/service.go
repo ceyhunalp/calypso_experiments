@@ -22,6 +22,8 @@ import (
 
 const DATA_SIZE = 1024 * 1024
 
+//const FIXED_COUNT int = 10
+
 func init() {
 	onet.SimulationRegister("CentralizedCalypso", NewCentralizedCalypsoService)
 }
@@ -198,6 +200,56 @@ func (s *SimulationService) runCentralizedByzgen(config *onet.SimulationConfig) 
 	return nil
 }
 
+func (s *SimulationService) runDecrypt(config *onet.SimulationConfig) error {
+	var err error
+	serverPk := config.Roster.Publics()[0]
+	wdList := make([]*util.WriteData, s.BatchSize)
+	writeTxnList := make([]*util.WriteData, s.BatchSize)
+	readKList := make([]kyber.Point, s.BatchSize)
+	readCList := make([]kyber.Point, s.BatchSize)
+	for round := 0; round < s.Rounds; round++ {
+		log.Lvl1("Starting round", round)
+
+		rSk := cothority.Suite.Scalar().Pick(cothority.Suite.RandomStream())
+		rPk := cothority.Suite.Point().Mul(rSk, nil)
+
+		for i := 0; i < s.BatchSize; i++ {
+			data := make([]byte, DATA_SIZE)
+			rand.Read(data)
+			wdList[i], err = util.CreateWriteData(data, rPk, serverPk, false)
+			if err != nil {
+				log.Errorf("CreateWriteData failed: %v", err)
+				return err
+			}
+		}
+		for i := 0; i < s.BatchSize; i++ {
+			writeTxnList[i], err = centralized.CreateWriteTxn(config.Roster, wdList[i])
+			if err != nil {
+				log.Errorf("CreateWriteTxn failed: %v", err)
+				return err
+			}
+		}
+		for i := 0; i < s.BatchSize; i++ {
+			readKList[i], readCList[i], err = centralized.CreateReadTxn(config.Roster, wdList[i].StoredKey, rSk)
+			if err != nil {
+				log.Errorf("CreateReadTxn failed: %v", err)
+				return err
+			}
+		}
+		crt := monitor.NewTimeMeasure("Recoverdata")
+		for i := 0; i < s.BatchSize; i++ {
+			_, err := util.RecoverData(wdList[i].Data, rSk, readKList[i], readCList[i])
+			if err != nil {
+				log.Errorf("RecoverData failed: %v", err)
+				return err
+			}
+			//log.LLvlf1("Recoverer data is %x", string(data))
+		}
+		crt.Record()
+	}
+	return err
+}
+
 func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) error {
 	var err error
 	log.Info("Total # of rounds is:", s.Rounds)
@@ -262,6 +314,7 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	err := s.runMicrobenchmark(config)
+	//err := s.runDecrypt(config)
 	if err != nil {
 		log.Errorf("RunCentralized error: %v", err)
 	}

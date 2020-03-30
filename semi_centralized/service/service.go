@@ -7,10 +7,11 @@ runs on the node.
 
 import (
 	"errors"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/network"
 	"sync"
+
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/network"
 )
 
 // ServiceName is used for registration on the onet.

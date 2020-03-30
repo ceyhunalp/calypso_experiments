@@ -4,14 +4,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
-	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
 	"os"
 	"strconv"
 	"strings"
+
+	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
+	"github.com/ceyhunalp/calypso_experiments/util"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
 )
 
 func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, byzd *sc.ByzcoinData, data []byte) error {

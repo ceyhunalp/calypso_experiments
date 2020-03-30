@@ -7,14 +7,14 @@ import (
 	"errors"
 
 	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/cothority/calypso"
-	"go.dedis.ch/cothority/skipchain"
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/kyber/sign/schnorr"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/network"
+	"go.dedis.ch/cothority/v3"
+	"go.dedis.ch/cothority/v3/byzcoin"
+	"go.dedis.ch/cothority/v3/calypso"
+	"go.dedis.ch/cothority/v3/skipchain"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/sign/schnorr"
+	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/network"
 	bolt "go.etcd.io/bbolt"
 )
 

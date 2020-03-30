@@ -2,18 +2,20 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"errors"
-	"github.com/BurntSushi/toml"
-	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
-	"github.com/ceyhunalp/calypso_experiments/util"
-	"go.dedis.ch/cothority/byzcoin"
-	"go.dedis.ch/kyber"
-	"go.dedis.ch/onet"
-	"go.dedis.ch/onet/log"
-	"go.dedis.ch/onet/simul/monitor"
 	"io/ioutil"
 	"os"
 	"strconv"
+
+	"github.com/BurntSushi/toml"
+	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
+	"github.com/ceyhunalp/calypso_experiments/util"
+	"go.dedis.ch/cothority/v3/byzcoin"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/onet/v3"
+	"go.dedis.ch/onet/v3/log"
+	"go.dedis.ch/onet/v3/simul/monitor"
 )
 
 /*
@@ -90,7 +92,7 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 	return s.SimulationBFTree.Node(config)
 }
 
-func (s *SimulationService) runSemiCentralizedSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
+func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig, serverPk kyber.Point) error {
 	wdList := make([]*util.WriteData, s.BatchSize)
 	writeTxnList := make([]*sc.TransactionReply, s.BatchSize)
 	readTxnList := make([]*sc.TransactionReply, s.BatchSize)
@@ -120,9 +122,7 @@ func (s *SimulationService) runSemiCentralizedSimulation(config *onet.Simulation
 
 		for i := 0; i < s.BatchSize; i++ {
 			data := make([]byte, DATA_SIZE)
-			for j := 0; j < DATA_SIZE; j++ {
-				data[j] = byte(i)
-			}
+			rand.Read(data)
 			wdList[i], err = util.CreateWriteData(data, reader.Ed25519.Point, serverPk, true)
 			if err != nil {
 				return err
@@ -650,7 +650,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	size := config.Tree.Size()
 	log.Info("Size of the tree:", size)
 
-	err := s.runByzgenSimulation(config, serverPk)
+	//err := s.runByzgenSimulation(config, serverPk)
+	err := s.runMicrobenchmark(config, serverPk)
 	if err != nil {
 		log.Info("Simulation error:", err)
 		return err

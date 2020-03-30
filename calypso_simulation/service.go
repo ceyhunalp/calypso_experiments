@@ -135,7 +135,7 @@ func setupByzcoin(r *onet.Roster, blockInterval int) (*ByzcoinData, error) {
 	return byzd, nil
 }
 
-func (s *SimulationService) runSingleSimulation(config *onet.SimulationConfig) error {
+func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) error {
 	writeList := make([]*calypso.Write, s.NumTransactions)
 	writeTxnList := make([]*calypso.WriteReply, s.NumTransactions)
 	wrProofList := make([]*byzcoin.Proof, s.NumTransactions)
@@ -446,7 +446,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	log.Lvl2("Size is:", size, "rounds:", s.Rounds)
 	log.Info("Roster size is:", len(config.Roster.List))
 
-	err := s.runByzgenSimulation(config)
+	//err := s.runByzgenSimulation(config)
+	err := s.runMicrobenchmark(config)
 	if err != nil {
 		log.Info("Returned with error:", err)
 		return err
