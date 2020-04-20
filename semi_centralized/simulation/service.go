@@ -25,7 +25,7 @@ const DATA_SIZE = 1024 * 1024
 const FIXED_COUNT int = 10
 
 func init() {
-	onet.SimulationRegister("SemiMicro", NewSemiCentralizedService)
+	onet.SimulationRegister("Semi", NewSemiCentralizedService)
 }
 
 // SimulationService only holds the BFTree simulation

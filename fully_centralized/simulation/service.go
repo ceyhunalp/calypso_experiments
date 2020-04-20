@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/rand"
+	"io/ioutil"
 	"os"
 	"strconv"
 
@@ -25,7 +26,7 @@ const DATA_SIZE = 1024 * 1024
 //const FIXED_COUNT int = 10
 
 func init() {
-	onet.SimulationRegister("FullyMicro", NewCentralizedCalypsoService)
+	onet.SimulationRegister("Fully", NewCentralizedCalypsoService)
 }
 
 // SimulationService only holds the BFTree simulation
@@ -58,6 +59,14 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	if err != nil {
 		return nil, err
 	}
+	buf, err := ioutil.ReadFile("./txn_list.data")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(dir+"/txn_list.data", buf, 0777)
+	if err != nil {
+		return nil, err
+	}
 	return sc, nil
 }
 
@@ -75,7 +84,6 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 }
 
 func readAuxFile(txnList []int) error {
-	//func readAuxFile(txnList []int, txnPerBlkList []int) error {
 	f, err := os.Open("./txn_list.data")
 	if err != nil {
 		return err
@@ -313,7 +321,9 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	err := s.runMicrobenchmark(config)
+	//err := s.runMicrobenchmark(config)
+	//err := s.runCentralizedByzgen(config)
+	err := s.runDecrypt(config)
 	if err != nil {
 		log.Errorf("RunCentralized error: %v", err)
 	}

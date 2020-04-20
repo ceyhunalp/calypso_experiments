@@ -12,7 +12,6 @@
 /**/*.data
 /**/*.eps
 /**/*.numbers
-/**/*.toml
 
 experiment_data/
 centralized/client/client

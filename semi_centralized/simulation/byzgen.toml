@@ -5,7 +5,7 @@ Rounds = 1
 RunWait =  "24000s"
 Delay = 100
 Bandwidth = 100
-BlockInterval = 10
+BlockInterval = 15
 Suite = "Ed25519"
 
 Hosts, NumBlocks, NumTransactions, NumWriteTransactions, NumReadTransactions

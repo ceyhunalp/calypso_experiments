@@ -1,0 +1,15 @@
+Simulation = "Calypso"
+Servers = 4
+BF = 9
+Rounds = 3
+Delay = 100
+Bandwidth = 100
+RunWait =  "1200s"
+Suite = "Ed25519"
+BlockInterval = 10
+
+Hosts, Interleave, NumTransactions, NumWriteTransactions, NumReadTransactions
+#10, false, 4, 0, 0
+#10, false, 16, 0, 0
+#10, false, 64, 0, 0
+10, false, 256, 0, 0

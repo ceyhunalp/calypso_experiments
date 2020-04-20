@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -70,22 +69,22 @@ func (s *SimulationService) Setup(dir string, hosts []string) (
 	if err != nil {
 		return nil, err
 	}
-	buf, err := ioutil.ReadFile("./txn_list_82.data")
-	if err != nil {
-		return nil, err
-	}
-	err = ioutil.WriteFile(dir+"/txn_list_82.data", buf, 0777)
-	if err != nil {
-		return nil, err
-	}
-	buf, err = ioutil.ReadFile("./txn_per_blk_82.data")
-	if err != nil {
-		return nil, err
-	}
-	err = ioutil.WriteFile(dir+"/txn_per_blk_82.data", buf, 0777)
-	if err != nil {
-		return nil, err
-	}
+	//buf, err := ioutil.ReadFile("./txn_list_82.data")
+	//if err != nil {
+	//return nil, err
+	//}
+	//err = ioutil.WriteFile(dir+"/txn_list_82.data", buf, 0777)
+	//if err != nil {
+	//return nil, err
+	//}
+	//buf, err = ioutil.ReadFile("./txn_per_blk_82.data")
+	//if err != nil {
+	//return nil, err
+	//}
+	//err = ioutil.WriteFile(dir+"/txn_per_blk_82.data", buf, 0777)
+	//if err != nil {
+	//return nil, err
+	//}
 	return sc, nil
 }
 
@@ -160,7 +159,7 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 			return err
 		}
 
-		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 4)
+		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 3)
 		if err != nil {
 			return err
 		}
@@ -173,10 +172,10 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 
 		awm := monitor.NewTimeMeasure("AddWriteTxn")
 		for i := 0; i < s.NumTransactions; i++ {
-			wait := 3
-			//if i == s.NumTransactions-1 {
-			//wait = 5
-			//}
+			wait := 0
+			if i == s.NumTransactions-1 {
+				wait = 3
+			}
 			writeTxnList[i], err = calypsoClient.AddWrite(writeList[i], writer, *writeDarc, wait)
 			if err != nil {
 				return err
@@ -200,10 +199,10 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 
 		arm := monitor.NewTimeMeasure("AddReadTxn")
 		for i := 0; i < s.NumTransactions; i++ {
-			wait := 3
-			//if i == s.NumTransactions-1 {
-			//wait = 5
-			//}
+			wait := 0
+			if i == s.NumTransactions-1 {
+				wait = 3
+			}
 			readTxnList[i], err = calypsoClient.AddRead(wrProofList[i], reader, *writeDarc, wait)
 			if err != nil {
 				return err
