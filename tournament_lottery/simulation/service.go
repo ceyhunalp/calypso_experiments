@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"math"
+
 	"github.com/BurntSushi/toml"
 	tournament "github.com/ceyhunalp/calypso_experiments/tournament_lottery"
 	"github.com/dedis/cothority"
@@ -12,7 +14,6 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/simul/monitor"
-	"math"
 )
 
 /*
@@ -76,7 +77,6 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		log.Lvl1("Starting round", round)
 		byzd, err := tournament.SetupByzcoin(config.Roster)
 		numTransactions := s.NumTransactions
-		//numRounds := 1
 		numRounds := int(math.Ceil(math.Log2(float64(numTransactions))))
 		numTransactionsLeft := numTransactions
 		participantList := make([]int, numTransactions)
@@ -93,13 +93,13 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			}
 			lotteryData := make([]*tournament.LotteryData, numTransactionsLeft)
 			commitTxnList := make([]*tournament.TransactionReply, numTransactionsLeft)
-			//wait := 3
 			wait := 0
 			comtime := monitor.NewTimeMeasure("commit_time")
 			for i := 0; i < numTransactionsLeft; i++ {
 				lotteryData[i] = tournament.CreateLotteryData()
 				if i == numTransactionsLeft-1 {
 					wait = 3
+					//wait = 1
 				}
 				log.Lvl1("[TournamentLottery] AddCommit called")
 				commitTxnList[i], err = byzd.AddCommitTransaction(lotteryData[i], wait)
@@ -124,11 +124,13 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 				commitProofList[i] = commitProofResp.Proof
 			}
 			wrproof.Record()
+
 			wait = 0
 			secretTxnList := make([]*tournament.TransactionReply, numTransactionsLeft)
 			trt := monitor.NewTimeMeasure("tournament_reveal")
 			for i := 0; i < numTransactionsLeft; i++ {
 				if i == numTransactionsLeft-1 {
+					//wait = 1
 					wait = 3
 				}
 				log.Lvl1("[TournametLottery] AddSecret called")
@@ -155,9 +157,9 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			}
 			tspt.Record()
 
-			trvt := monitor.NewTimeMeasure("tournament_get_winner")
 			revealedCommitList := make([]tournament.DataStore, numTransactionsLeft)
 			revealedSecretList := make([]tournament.DataStore, numTransactionsLeft)
+			trvt := monitor.NewTimeMeasure("tournament_get_winner")
 			for i := 0; i < numTransactionsLeft; i++ {
 				err = commitProofList[i].ContractValue(cothority.Suite, tournament.ContractLotteryStoreID, &revealedCommitList[i])
 				if err != nil {
@@ -191,10 +193,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 						lastDigit := int(result[31]) % 2
 						if lastDigit == 0 {
 							winnerList = append(winnerList, i)
-							//fmt.Println("Winner is", i)
 						} else {
 							winnerList = append(winnerList, i+1)
-							//fmt.Println("Winner is", i+1)
 						}
 					}
 				}
@@ -208,11 +208,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			isOdd = false
 			trvt.Record()
 			tournament.OrganizeList(participantList, winnerList)
-			//for i := 0; i < numTransactions; i++ {
-			//fmt.Print(participantList[i], " ")
-			//}
 		}
-		//lt.Record()
 		for i := 0; i < numTransactions; i++ {
 			if participantList[i] == 1 {
 				fmt.Println("Winner is", i)

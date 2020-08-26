@@ -2,13 +2,14 @@ package tournament
 
 import (
 	"crypto/sha256"
+	"time"
+
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/darc"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
-	"time"
 )
 
 type ByzcoinData struct {
@@ -194,6 +195,8 @@ func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
 		return nil, err
 	}
 	byzd.GMsg.BlockInterval = 5 * time.Second
+	//byzd.GMsg.BlockInterval = 15 * time.Second
+	//byzd.GMsg.BlockInterval = 10 * time.Second
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
 	if err != nil {
