@@ -1,35 +1,42 @@
 package semicentralized
 
 import (
+	bolt "github.com/coreos/bbolt"
 	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/cothority/calypso"
-	"github.com/dedis/cothority/darc"
-	"github.com/dedis/cothority/darc/expression"
-	"github.com/dedis/onet"
+	"github.com/dedis/cothority/skipchain"
+	"github.com/dedis/kyber"
 )
 
-type ByzcoinData struct {
-	Signer darc.Signer
-	Roster *onet.Roster
-	Cl     *byzcoin.Client
-	GMsg   *byzcoin.CreateGenesisBlock
-	GDarc  *darc.Darc
-	Csr    *byzcoin.CreateGenesisBlockResponse
+type SemiCentralizedDB struct {
+	*bolt.DB
+	bucketName []byte
 }
 
-func SetupDarcs() (darc.Signer, darc.Signer, *darc.Darc, error) {
-	var writer darc.Signer
-	var reader darc.Signer
-	writer = darc.NewSignerEd25519(nil, nil)
-	reader = darc.NewSignerEd25519(nil, nil)
-	writeDarc := darc.NewDarc(darc.InitRules([]darc.Identity{writer.Identity()}, []darc.Identity{writer.Identity()}), []byte("Writer"))
-	err := writeDarc.Rules.AddRule(darc.Action("spawn:"+calypso.ContractSemiWriteID), expression.InitOrExpr(writer.Identity().String()))
-	if err != nil {
-		return writer, reader, nil, err
-	}
-	err = writeDarc.Rules.AddRule(darc.Action("spawn:"+calypso.ContractReadID), expression.InitOrExpr(reader.Identity().String()))
-	if err != nil {
-		return writer, reader, nil, err
-	}
-	return writer, reader, writeDarc, nil
+type StoreRequest struct {
+	Data     []byte
+	DataHash []byte
+}
+
+type StoreReply struct {
+	StoredKey string
+}
+
+type DecryptRequest struct {
+	Write *byzcoin.Proof
+	Read  *byzcoin.Proof
+	SCID  skipchain.SkipBlockID
+	Key   string
+	Sig   []byte
+}
+
+type DecryptReply struct {
+	Data     []byte
+	DataHash []byte
+	K        kyber.Point
+	C        kyber.Point
+}
+
+type TransactionReply struct {
+	*byzcoin.AddTxResponse
+	byzcoin.InstanceID
 }

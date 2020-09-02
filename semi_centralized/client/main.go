@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
 	"github.com/ceyhunalp/calypso_experiments/util"
@@ -15,30 +13,36 @@ import (
 	"github.com/dedis/onet/log"
 )
 
-func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, byzd *sc.ByzcoinData, data []byte) error {
-	writer, reader, wDarc, err := sc.SetupDarcs()
+func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, interval int) error {
+	byzCl, admin, gDarc, err := sc.SetupByzcoin(r, interval)
 	if err != nil {
 		return err
 	}
-	_, err = byzd.SpawnDarc(*wDarc, 0)
+	scCl := sc.NewClient(byzCl)
+	writer, reader, wDarc, err := scCl.SetupDarcs()
 	if err != nil {
 		return err
 	}
-
+	_, err = scCl.SpawnDarc(admin, *wDarc, gDarc, 0)
+	if err != nil {
+		return err
+	}
+	data := []byte("On Wisconsin!")
 	wd, err := util.CreateWriteData(data, reader.Ed25519.Point, serverKey, true)
 	if err != nil {
 		return err
 	}
-	err = sc.StoreEncryptedData(r, wd)
+	reply, err := scCl.StoreData(r, wd.Data, wd.DataHash)
 	if err != nil {
 		return err
 	}
+	wd.StoredKey = reply.StoredKey
 
-	writeTxn, err := byzd.AddWriteTransaction(wd, writer, *wDarc, 5)
+	writeTxn, err := scCl.AddWriteTransaction(wd, writer, *wDarc, 5)
 	if err != nil {
 		return err
 	}
-	wrProofResponse, err := byzd.GetProof(writeTxn.InstanceID)
+	wrProofResponse, err := scCl.GetProof(writeTxn.InstanceID)
 	if err != nil {
 		return err
 	}
@@ -53,11 +57,11 @@ func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, byzd *sc.ByzcoinD
 	//if !wrProof.InclusionProof.Match() {
 	//return errors.New("Write inclusion proof does not match")
 	//}
-	readTxn, err := byzd.AddReadTransaction(&wrProof, reader, *wDarc, 5)
+	readTxn, err := scCl.AddReadTransaction(&wrProof, reader, *wDarc, 5)
 	if err != nil {
 		return err
 	}
-	rProofResponse, err := byzd.GetProof(readTxn.InstanceID)
+	rProofResponse, err := scCl.GetProof(readTxn.InstanceID)
 	if err != nil {
 		return err
 	}
@@ -74,11 +78,10 @@ func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, byzd *sc.ByzcoinD
 	//return errors.New("Read inclusion proof does not match")
 	//}
 
-	dr, err := byzd.DecryptRequest(r, &wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
+	dr, err := scCl.Decrypt(r, &wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
 	if err != nil {
 		return err
 	}
-
 	recvData, err := util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
 	if err != nil {
 		return err
@@ -105,16 +108,8 @@ func main() {
 		log.Errorf("Get server key failed: %v", err)
 		os.Exit(1)
 	}
-	byzd, err := sc.SetupByzcoin(roster, *intervalPtr)
+	err = runSemiCentralized(roster, serverKey, *intervalPtr)
 	if err != nil {
-		log.Errorf("Setting up Byzcoin failed: %v", err)
-		os.Exit(1)
-	}
-	baseStr := "On Wisconsin! -- "
-	for i := 0; i < 100; i++ {
-		err = runSemiCentralized(roster, serverKey, byzd, []byte(strings.Join([]string{baseStr, strconv.Itoa(i + 1)}, "")))
-		if err != nil {
-			log.Errorf("Run SemiCentralized failed: %v", err)
-		}
+		log.Errorf("Run SemiCentralized failed: %v", err)
 	}
 }
