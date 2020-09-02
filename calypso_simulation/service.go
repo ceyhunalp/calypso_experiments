@@ -2,9 +2,12 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -13,6 +16,7 @@ import (
 	"github.com/dedis/cothority/calypso"
 	"github.com/dedis/cothority/darc"
 	"github.com/dedis/cothority/darc/expression"
+	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -24,6 +28,8 @@ import (
  */
 
 const FIXED_COUNT int = 10
+
+var wg sync.WaitGroup
 
 type ByzcoinData struct {
 	Signer darc.Signer
@@ -41,12 +47,12 @@ func init() {
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
 	onet.SimulationBFTree
-	//TotalCount           int
 	NumTransactions      int
 	NumWriteTransactions int
 	NumReadTransactions  int
 	NumBlocks            int
 	BlockInterval        int
+	BlockWait            int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -104,7 +110,6 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 func setupDarcs() (darc.Signer, darc.Signer, *darc.Darc, error) {
 	writer := darc.NewSignerEd25519(nil, nil)
 	reader := darc.NewSignerEd25519(nil, nil)
-
 	writeDarc := darc.NewDarc(darc.InitRules([]darc.Identity{writer.Identity()},
 		[]darc.Identity{writer.Identity()}), []byte("Writer"))
 	writeDarc.Rules.AddRule(darc.Action("spawn:"+calypso.ContractWriteID),
@@ -133,132 +138,6 @@ func setupByzcoin(r *onet.Roster, blockInterval int) (*ByzcoinData, error) {
 	}
 	return byzd, nil
 }
-
-func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) error {
-	writeList := make([]*calypso.Write, s.NumTransactions)
-	writeTxnList := make([]*calypso.WriteReply, s.NumTransactions)
-	wrProofList := make([]*byzcoin.Proof, s.NumTransactions)
-	readTxnList := make([]*calypso.ReadReply, s.NumTransactions)
-	readProofList := make([]*byzcoin.Proof, s.NumTransactions)
-
-	for round := 0; round < s.Rounds; round++ {
-		log.Lvl1("Starting round", round)
-		byzd, err := setupByzcoin(config.Roster, s.BlockInterval)
-		if err != nil {
-			return err
-		}
-
-		calypsoClient := calypso.NewClient(byzd.Cl)
-		ltsReply, err := calypsoClient.CreateLTS()
-		if err != nil {
-			return err
-		}
-
-		writer, reader, writeDarc, err := setupDarcs()
-		if err != nil {
-			return err
-		}
-
-		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 3)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < s.NumTransactions; i++ {
-			var key [16]byte
-			random.Bytes(key[:], random.New())
-			writeList[i] = calypso.NewWrite(cothority.Suite, ltsReply.LTSID, writeDarc.GetBaseID(), ltsReply.X, key[:])
-		}
-
-		awm := monitor.NewTimeMeasure("AddWriteTxn")
-		for i := 0; i < s.NumTransactions; i++ {
-			wait := 0
-			if i == s.NumTransactions-1 {
-				wait = 3
-			}
-			writeTxnList[i], err = calypsoClient.AddWrite(writeList[i], writer, *writeDarc, wait)
-			if err != nil {
-				return err
-			}
-		}
-		awm.Record()
-
-		wgp := monitor.NewTimeMeasure("WriteGetProof")
-		for i := 0; i < s.NumTransactions; i++ {
-			wrProofResponse, err := byzd.Cl.GetProof(writeTxnList[i].InstanceID.Slice())
-			if err != nil {
-				return err
-			}
-			wrProof := wrProofResponse.Proof
-			if !wrProof.InclusionProof.Match() {
-				return errors.New("Write inclusion proof does not match")
-			}
-			wrProofList[i] = &wrProof
-		}
-		wgp.Record()
-
-		arm := monitor.NewTimeMeasure("AddReadTxn")
-		for i := 0; i < s.NumTransactions; i++ {
-			wait := 0
-			if i == s.NumTransactions-1 {
-				wait = 3
-			}
-			readTxnList[i], err = calypsoClient.AddRead(wrProofList[i], reader, *writeDarc, wait)
-			if err != nil {
-				return err
-			}
-		}
-		arm.Record()
-
-		rgp := monitor.NewTimeMeasure("ReadGetProof")
-		for i := 0; i < s.NumTransactions; i++ {
-			rProofResponse, err := byzd.Cl.GetProof(readTxnList[i].InstanceID.Slice())
-			if err != nil {
-				return err
-			}
-			rProof := rProofResponse.Proof
-			if !rProof.InclusionProof.Match() {
-				return errors.New("Read inclusion proof does not match")
-			}
-			readProofList[i] = &rProof
-		}
-		rgp.Record()
-
-		dkm := monitor.NewTimeMeasure("DecryptKey")
-		for i := 0; i < s.NumTransactions; i++ {
-			dk, err := calypsoClient.DecryptKey(&calypso.DecryptKey{Read: *readProofList[i], Write: *wrProofList[i]})
-			if err != nil {
-				return err
-			}
-			if !dk.X.Equal(ltsReply.X) {
-				return errors.New("Points not same")
-			}
-
-			_, err = calypso.DecodeKey(cothority.Suite, ltsReply.X, dk.Cs, dk.XhatEnc, reader.Ed25519.Secret)
-			if err != nil {
-				return err
-			}
-			//log.Info("Keys are equal: ", bytes.Equal(decodedKey, key[:]))
-		}
-		dkm.Record()
-	}
-	return nil
-}
-
-func countTransactions(txnList []int, base int, sz int) (int, int) {
-	write := 0
-	read := 0
-	for i := 0; i < sz; i++ {
-		if txnList[base+i] == 1 {
-			write++
-		} else {
-			read++
-		}
-	}
-	log.Info("wcount, rcount:", write, read)
-	return write, read
-}
-
 func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig) error {
 	txnList := make([]int, s.NumTransactions)
 	blkSizeList := make([]int, s.NumBlocks)
@@ -406,6 +285,208 @@ func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig) e
 	return nil
 }
 
+func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) error {
+	writeList := make([]*calypso.Write, s.NumTransactions)
+	writeTxnList := make([]*calypso.WriteReply, s.NumTransactions)
+	wrProofList := make([]*byzcoin.Proof, s.NumTransactions)
+	readTxnList := make([]*calypso.ReadReply, s.NumTransactions)
+	readProofList := make([]*byzcoin.Proof, s.NumTransactions)
+
+	for round := 0; round < s.Rounds; round++ {
+		log.Lvl1("Starting round", round)
+		byzd, err := setupByzcoin(config.Roster, s.BlockInterval)
+		if err != nil {
+			return err
+		}
+		calypsoClient := calypso.NewClient(byzd.Cl)
+		ltsReply, err := calypsoClient.CreateLTS()
+		if err != nil {
+			return err
+		}
+		writer, reader, writeDarc, err := setupDarcs()
+		if err != nil {
+			return err
+		}
+		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 3)
+		if err != nil {
+			return err
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			var key [16]byte
+			random.Bytes(key[:], random.New())
+			writeList[i] = calypso.NewWrite(cothority.Suite, ltsReply.LTSID, writeDarc.GetBaseID(), ltsReply.X, key[:])
+		}
+		awm := monitor.NewTimeMeasure("AddWriteTxn")
+		for i := 0; i < s.NumTransactions; i++ {
+			wait := 0
+			if i == s.NumTransactions-1 {
+				wait = 3
+			}
+			writeTxnList[i], err = calypsoClient.AddWrite(writeList[i], writer, *writeDarc, wait)
+			if err != nil {
+				return err
+			}
+		}
+		awm.Record()
+		wgp := monitor.NewTimeMeasure("WriteGetProof")
+		for i := 0; i < s.NumTransactions; i++ {
+			wrProofResponse, err := byzd.Cl.GetProof(writeTxnList[i].InstanceID.Slice())
+			if err != nil {
+				return err
+			}
+			wrProof := wrProofResponse.Proof
+			if !wrProof.InclusionProof.Match() {
+				return errors.New("Write inclusion proof does not match")
+			}
+			wrProofList[i] = &wrProof
+		}
+		wgp.Record()
+		arm := monitor.NewTimeMeasure("AddReadTxn")
+		for i := 0; i < s.NumTransactions; i++ {
+			wait := 0
+			if i == s.NumTransactions-1 {
+				wait = 3
+			}
+			readTxnList[i], err = calypsoClient.AddRead(wrProofList[i], reader, *writeDarc, wait)
+			if err != nil {
+				return err
+			}
+		}
+		arm.Record()
+		rgp := monitor.NewTimeMeasure("ReadGetProof")
+		for i := 0; i < s.NumTransactions; i++ {
+			rProofResponse, err := byzd.Cl.GetProof(readTxnList[i].InstanceID.Slice())
+			if err != nil {
+				return err
+			}
+			rProof := rProofResponse.Proof
+			if !rProof.InclusionProof.Match() {
+				return errors.New("Read inclusion proof does not match")
+			}
+			readProofList[i] = &rProof
+		}
+		rgp.Record()
+
+		dkm := monitor.NewTimeMeasure("DecryptKey")
+		for i := 0; i < s.NumTransactions; i++ {
+			dk, err := calypsoClient.DecryptKey(&calypso.DecryptKey{Read: *readProofList[i], Write: *wrProofList[i]})
+			if err != nil {
+				return err
+			}
+			if !dk.X.Equal(ltsReply.X) {
+				return errors.New("Points not same")
+			}
+
+			_, err = calypso.DecodeKey(cothority.Suite, ltsReply.X, dk.Cs, dk.XhatEnc, reader.Ed25519.Secret)
+			if err != nil {
+				return err
+			}
+			//log.Info("Keys are equal: ", bytes.Equal(decodedKey, key[:]))
+		}
+		dkm.Record()
+	}
+	return nil
+}
+
+func decrypt(idx int, bc *byzcoin.Client, X kyber.Point, key [16]byte, wProof *byzcoin.Proof, reader darc.Signer, wDarc *darc.Darc) error {
+	defer wg.Done()
+	wait := 0
+	cc := calypso.NewClient(bc)
+	label := fmt.Sprintf("%s%d", "Client_", idx)
+	decMonitor := monitor.NewTimeMeasure(label)
+	re, err := cc.AddRead(wProof, reader, *wDarc, wait)
+	if err != nil {
+		log.Errorf("AddRead error @%d: %v", idx, err)
+		return err
+	}
+	time.Sleep(20 * time.Second)
+	rProofResponse, err := bc.GetProof(re.InstanceID.Slice())
+	if err != nil {
+		log.Errorf("GetProof error @%d: %v", idx, err)
+		return err
+	}
+	//log.Infof("In %d: %x", idx, rProofResponse.Proof.InclusionProof.Key)
+	rProof := rProofResponse.Proof
+	if !rProof.InclusionProof.Match() {
+		log.Errorf("Read inclusion proof does not match error @%d", idx)
+		return nil
+	}
+	dk, err := cc.DecryptKey(&calypso.DecryptKey{Read: rProof, Write: *wProof})
+	if err != nil {
+		log.Errorf("DecryptKey error @%d: %v", idx, err)
+		return err
+	}
+	decodedKey, err := calypso.DecodeKey(cothority.Suite, X, dk.Cs, dk.XhatEnc, reader.Ed25519.Secret)
+	if err != nil {
+		return err
+	}
+	decMonitor.Record()
+	fmt.Printf("Keys are equal for %d: %t\n", idx, bytes.Equal(decodedKey, key[:]))
+	return nil
+}
+
+func (s *SimulationService) runMultiClientCalypso(config *onet.SimulationConfig) error {
+	keyList := make([][16]byte, s.NumTransactions)
+	writeList := make([]*calypso.Write, s.NumTransactions)
+	writeTxnList := make([]*calypso.WriteReply, s.NumTransactions)
+	wrProofList := make([]*byzcoin.Proof, s.NumTransactions)
+
+	for round := 0; round < s.Rounds; round++ {
+		log.Lvl1("Starting round", round)
+		byzd, err := setupByzcoin(config.Roster, s.BlockInterval)
+		if err != nil {
+			return err
+		}
+		calypsoClient := calypso.NewClient(byzd.Cl)
+		ltsReply, err := calypsoClient.CreateLTS()
+		if err != nil {
+			return err
+		}
+		writer, reader, writeDarc, err := setupDarcs()
+		if err != nil {
+			return err
+		}
+		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 3)
+		if err != nil {
+			return err
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			var key [16]byte
+			random.Bytes(key[:], random.New())
+			writeList[i] = calypso.NewWrite(cothority.Suite, ltsReply.LTSID, writeDarc.GetBaseID(), ltsReply.X, key[:])
+			keyList[i] = key
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			wait := 0
+			if i == s.NumTransactions-1 {
+				wait = s.BlockWait
+			}
+			writeTxnList[i], err = calypsoClient.AddWrite(writeList[i], writer, *writeDarc, wait)
+			if err != nil {
+				return err
+			}
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			wrProofResponse, err := byzd.Cl.GetProof(writeTxnList[i].InstanceID.Slice())
+			if err != nil {
+				return err
+			}
+			wrProof := wrProofResponse.Proof
+			if !wrProof.InclusionProof.Match() {
+				return errors.New("Write inclusion proof does not match")
+			}
+			wrProofList[i] = &wrProof
+		}
+		wg.Add(s.NumTransactions)
+		for i := 0; i < s.NumTransactions; i++ {
+			go decrypt(i, byzd.Cl, ltsReply.X, keyList[i], wrProofList[i], reader, writeDarc)
+		}
+		wg.Wait()
+		log.Info("goroutines are finished")
+	}
+	return nil
+}
+
 func readAuxFile(txnList []int, txnPerBlkList []int) error {
 	f, err := os.Open("./txn_list_82.data")
 	if err != nil {
@@ -438,6 +519,20 @@ func readAuxFile(txnList []int, txnPerBlkList []int) error {
 	return nil
 }
 
+func countTransactions(txnList []int, base int, sz int) (int, int) {
+	write := 0
+	read := 0
+	for i := 0; i < sz; i++ {
+		if txnList[base+i] == 1 {
+			write++
+		} else {
+			read++
+		}
+	}
+	log.Info("wcount, rcount:", write, read)
+	return write, read
+}
+
 // Run is used on ehe destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
@@ -446,7 +541,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	log.Info("Roster size is:", len(config.Roster.List))
 
 	//err := s.runByzgenSimulation(config)
-	err := s.runMicrobenchmark(config)
+	//err := s.runMicrobenchmark(config)
+	err := s.runMultiClientCalypso(config)
 	if err != nil {
 		log.Info("Returned with error:", err)
 		return err
