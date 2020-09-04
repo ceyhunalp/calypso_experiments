@@ -7,7 +7,7 @@ Delay = 100
 Bandwidth = 100
 Suite = "Ed25519"
 BlockInterval  = 10
-BlockWait = 2
+BlockWait = 10
 
 Hosts, NumTransactions
-10, 200
+10, 500

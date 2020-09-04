@@ -535,8 +535,8 @@ func (s *SimulationService) runMultipleLottery(config *onet.SimulationConfig, by
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	//return s.runBatchedLottery(config)
-	return s.runCalypsoLottery(config)
+	return s.runBatchedLottery(config)
+	//return s.runCalypsoLottery(config)
 
 	//byzd, err := lottery.SetupByzcoin(config.Roster)
 	//if err != nil {

@@ -1,28 +1,52 @@
 import sys
 import re
+import argparse
 
-patterns = ['Client_\d+_wall_avg']
-match_idxs = set()
+patterns = ['(Client_(\d+))_(read|decrypt)_wall_avg','(Client_(\d+))_(read|decrypt)_user_avg']
+match_idxs = dict()
+names = dict()
 
-fname = sys.argv[1]
-fd = open(fname, 'r')
+def readFile(fname, isUser):
+    fd = open(fname, 'r')
 
-label_line = fd.readline()
-labels = label_line.split(',')
+    label_line = fd.readline()
+    labels = label_line.split(',')
+    if isUser:
+        pattern_idx = 1
+    else:
+        pattern_idx = 0
+    for label in labels:
+        match = re.search(patterns[pattern_idx], label)
+        if match is not None:
+            cliNum = int(match.group(2))
+            names[cliNum] = match.group(1)
+            colIdx = labels.index(label)
+            if cliNum not in match_idxs:
+                match_idxs[cliNum] = [-1, -1]
+            val = match_idxs[cliNum]
+            if match.group(3) == "read":
+                val[0] = colIdx
+            elif match.group(3) == "decrypt":
+                val[1] = colIdx
+            match_idxs[cliNum] = val
 
-for label in labels:
-    match = re.search(patterns[0], label)
-    if match:
-        match_idxs.add(labels.index(label))
+    if isUser:
+        print("label, read_user_avg, decrypt_user_avg")
+    else:
+        print("label, read_wall_avg, decrypt_wall_avg")
 
-sorted_idxs = sorted(match_idxs)
+    for line in fd:
+        tokens = line.split(',')
+        for k,v in sorted(match_idxs.items()):
+            print("%s,%s,%s" % (names[k], tokens[v[0]], tokens[v[1]]))
 
-for idx in sorted_idxs:
-    print("%s," % (labels[idx]), end = '')
-print()
+def main():
+    parser = argparse.ArgumentParser(description='Parsing csv files')
+    parser.add_argument('fname', type=str)
+    parser.add_argument('--user', action='store_true') 
+    args = parser.parse_args()
+    # print(args.user)
+    readFile(args.fname, args.user)
 
-for line in fd:
-    tokens = line.split(',')
-    for idx in sorted_idxs:
-        print("%s," % (tokens[idx]), end = '')
-    print()
+if __name__ == '__main__':
+    main()

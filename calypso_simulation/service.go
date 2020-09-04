@@ -23,10 +23,6 @@ import (
 	"github.com/dedis/onet/simul/monitor"
 )
 
-/*
- * Defines the simulation for the service-template
- */
-
 const FIXED_COUNT int = 10
 
 var wg sync.WaitGroup
@@ -388,40 +384,51 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig) err
 	return nil
 }
 
-func decrypt(idx int, bc *byzcoin.Client, X kyber.Point, key [16]byte, wProof *byzcoin.Proof, reader darc.Signer, wDarc *darc.Darc) error {
+func decrypt(idx int, bc *byzcoin.Client, X kyber.Point, key [16]byte, wProof *byzcoin.Proof, reader darc.Signer, wDarc *darc.Darc, wait int) error {
 	defer wg.Done()
-	wait := 0
 	cc := calypso.NewClient(bc)
-	label := fmt.Sprintf("%s%d", "Client_", idx)
-	decMonitor := monitor.NewTimeMeasure(label)
+	label := fmt.Sprintf("Client_%d_read", idx+1)
+
+	readMonior := monitor.NewTimeMeasure(label)
 	re, err := cc.AddRead(wProof, reader, *wDarc, wait)
 	if err != nil {
 		log.Errorf("AddRead error @%d: %v", idx, err)
 		return err
 	}
-	time.Sleep(20 * time.Second)
 	rProofResponse, err := bc.GetProof(re.InstanceID.Slice())
 	if err != nil {
 		log.Errorf("GetProof error @%d: %v", idx, err)
 		return err
 	}
-	//log.Infof("In %d: %x", idx, rProofResponse.Proof.InclusionProof.Key)
 	rProof := rProofResponse.Proof
 	if !rProof.InclusionProof.Match() {
 		log.Errorf("Read inclusion proof does not match error @%d", idx)
-		return nil
+		return errors.New("Read inclusion proof does not match")
 	}
+	readMonior.Record()
+	//var header byzcoin.DataHeader
+	//err = protobuf.Decode(rProof.Latest.Data, &header)
+	//if err != nil {
+	//log.Errorf("pbuf decode: %v", err)
+	//}
+	//log.Info(rProof.Latest.Index, header.Timestamp/1e6)
+
+	label = fmt.Sprintf("Client_%d_decrypt", idx+1)
+	decMonitor := monitor.NewTimeMeasure(label)
 	dk, err := cc.DecryptKey(&calypso.DecryptKey{Read: rProof, Write: *wProof})
 	if err != nil {
 		log.Errorf("DecryptKey error @%d: %v", idx, err)
 		return err
 	}
+	decMonitor.Record()
+
 	decodedKey, err := calypso.DecodeKey(cothority.Suite, X, dk.Cs, dk.XhatEnc, reader.Ed25519.Secret)
 	if err != nil {
 		return err
 	}
-	decMonitor.Record()
-	fmt.Printf("Keys are equal for %d: %t\n", idx, bytes.Equal(decodedKey, key[:]))
+	if !bytes.Equal(decodedKey, key[:]) {
+		return errors.New("Keys don't match")
+	}
 	return nil
 }
 
@@ -475,11 +482,23 @@ func (s *SimulationService) runMultiClientCalypso(config *onet.SimulationConfig)
 			if !wrProof.InclusionProof.Match() {
 				return errors.New("Write inclusion proof does not match")
 			}
+			//var header byzcoin.DataHeader
+			//err = protobuf.Decode(wrProof.Latest.Data, &header)
+			//if err != nil {
+			//log.Errorf("pbuf decode: %v", err)
+			//}
+			//log.Info("write proof index:", wrProof.Latest.Index, header.Timestamp/1e6)
 			wrProofList[i] = &wrProof
 		}
 		wg.Add(s.NumTransactions)
 		for i := 0; i < s.NumTransactions; i++ {
-			go decrypt(i, byzd.Cl, ltsReply.X, keyList[i], wrProofList[i], reader, writeDarc)
+			byzCl := byzcoin.NewClient(byzd.Cl.ID, byzd.Cl.Roster)
+			go func(idx int, cl *byzcoin.Client) {
+				err := decrypt(idx, cl, ltsReply.X, keyList[idx], wrProofList[idx], reader, writeDarc, s.BlockWait)
+				if err != nil {
+					log.Errorf("goroutine %d error: %v", idx, err)
+				}
+			}(i, byzCl)
 		}
 		wg.Wait()
 		log.Info("goroutines are finished")
@@ -540,8 +559,6 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	log.Lvl2("Size is:", size, "rounds:", s.Rounds)
 	log.Info("Roster size is:", len(config.Roster.List))
 
-	//err := s.runByzgenSimulation(config)
-	//err := s.runMicrobenchmark(config)
 	err := s.runMultiClientCalypso(config)
 	if err != nil {
 		log.Info("Returned with error:", err)
