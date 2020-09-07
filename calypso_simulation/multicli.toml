@@ -10,4 +10,4 @@ BlockInterval  = 10
 BlockWait = 10
 
 Hosts, NumTransactions
-10, 500
+10, 100

@@ -2,9 +2,10 @@ import sys
 import re
 import argparse
 
-patterns = ['(Client_(\d+))_(read|decrypt)_wall_avg','(Client_(\d+))_(read|decrypt)_user_avg']
+patterns = ['(Client_(\d+))_(read|decrypt)_wall_sum','(Client_(\d+))_(read|decrypt)_user_sum']
 match_idxs = dict()
 names = dict()
+out_lines = dict()
 
 def readFile(fname, isUser):
     fd = open(fname, 'r')
@@ -31,14 +32,29 @@ def readFile(fname, isUser):
             match_idxs[cliNum] = val
 
     if isUser:
-        print("label, read_user_avg, decrypt_user_avg")
+        print("label, read_user_sum, decrypt_user_sum")
     else:
-        print("label, read_wall_avg, decrypt_wall_avg")
+        print("label, read_wall_sum, decrypt_wall_sum")
 
+    line_cnt = 0
     for line in fd:
+        line_cnt += 1
         tokens = line.split(',')
         for k,v in sorted(match_idxs.items()):
-            print("%s,%s,%s" % (names[k], tokens[v[0]], tokens[v[1]]))
+            # print("%s,%s,%s" % (names[k], tokens[v[0]], tokens[v[1]]))
+            v1 = tokens[v[0]]
+            v2 = tokens[v[1]]
+            tot = float(v1) + float(v2)
+            tot_str = "%.6f" % tot
+            # out_lines[k] = [tokens[v[0]], tokens[v[1]]]
+            # out_lines[k] = [v1, v2, str(tot)]
+            out_lines[k] = [v1, v2, tot_str]
+
+
+    for k,v in sorted(out_lines.items()):
+        tmp = ','.join(v)
+        print("%s,%s" % (names[k], tmp))
+    
 
 def main():
     parser = argparse.ArgumentParser(description='Parsing csv files')

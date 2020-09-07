@@ -20,12 +20,12 @@ import (
 const ServiceName = "SemiCentralizedService"
 
 type SCClient struct {
-	bcClient *byzcoin.Client
+	BcClient *byzcoin.Client
 	c        *onet.Client
 }
 
 func NewClient(bc *byzcoin.Client) *SCClient {
-	return &SCClient{bcClient: bc, c: onet.NewClient(cothority.Suite, ServiceName)}
+	return &SCClient{BcClient: bc, c: onet.NewClient(cothority.Suite, ServiceName)}
 }
 
 func SetupByzcoin(r *onet.Roster, blockInterval int) (cl *byzcoin.Client, admin darc.Signer, gDarc darc.Darc, err error) {
@@ -89,18 +89,20 @@ func (scCl *SCClient) SpawnDarc(signer darc.Signer, spawnDarc darc.Darc, control
 		log.Errorf("Spawning darc failed: %v", err)
 		return nil, err
 	}
-	return scCl.bcClient.AddTransactionAndWait(ctx, wait)
+	return scCl.BcClient.AddTransactionAndWait(ctx, wait)
 }
 
-func (scCl *SCClient) StoreData(r *onet.Roster, data []byte, dataHash []byte) (*StoreReply, error) {
+//func (scCl *SCClient) StoreData(r *onet.Roster, data []byte, dataHash []byte) (*StoreReply, error) {
+func (scCl *SCClient) StoreData(data []byte, dataHash []byte) (*StoreReply, error) {
 	sr := &StoreRequest{
 		Data:     data,
 		DataHash: dataHash,
 	}
-	dest := r.List[0]
-	log.Lvl3("Sending message to", dest)
+	//dest := r.List[0]
+	//log.Lvl3("Sending message to", dest)
 	reply := &StoreReply{}
-	err := scCl.c.SendProtobuf(dest, sr, reply)
+	//err := scCl.c.SendProtobuf(dest, sr, reply)
+	err := scCl.c.SendProtobuf(scCl.BcClient.Roster.List[0], sr, reply)
 	if err != nil {
 		log.Errorf("Storing encrypted data failed: %v", err)
 		return nil, err
@@ -142,7 +144,7 @@ func (scCl *SCClient) AddWriteTransaction(wd *util.WriteData, signer darc.Signer
 	}
 	reply := &TransactionReply{}
 	reply.InstanceID = ctx.Instructions[0].DeriveID("")
-	reply.AddTxResponse, err = scCl.bcClient.AddTransactionAndWait(ctx, wait)
+	reply.AddTxResponse, err = scCl.BcClient.AddTransactionAndWait(ctx, wait)
 	if err != nil {
 		log.Errorf("Adding write transaction failed: %v", err)
 		return nil, err
@@ -180,11 +182,11 @@ func (scCl *SCClient) AddReadTransaction(proof *byzcoin.Proof, signer darc.Signe
 	reply := &TransactionReply{}
 	reply.InstanceID = ctx.Instructions[0].DeriveID("")
 	//if wait == 0 {
-	//reply.AddTxResponse, err = scCl.bcClient.AddTransaction(ctx)
+	//reply.AddTxResponse, err = scCl.BcClient.AddTransaction(ctx)
 	//} else {
-	//reply.AddTxResponse, err = scCl.bcClient.AddTransactionAndWait(ctx, wait)
+	//reply.AddTxResponse, err = scCl.BcClient.AddTransactionAndWait(ctx, wait)
 	//}
-	reply.AddTxResponse, err = scCl.bcClient.AddTransactionAndWait(ctx, wait)
+	reply.AddTxResponse, err = scCl.BcClient.AddTransactionAndWait(ctx, wait)
 	if err != nil {
 		log.Errorf("Adding read transaction failed: %v", err)
 		return nil, err
@@ -193,10 +195,11 @@ func (scCl *SCClient) AddReadTransaction(proof *byzcoin.Proof, signer darc.Signe
 }
 
 func (scCl *SCClient) GetProof(id byzcoin.InstanceID) (*byzcoin.GetProofResponse, error) {
-	return scCl.bcClient.GetProof(id.Slice())
+	return scCl.BcClient.GetProof(id.Slice())
 }
 
-func (scCl *SCClient) Decrypt(r *onet.Roster, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*DecryptReply, error) {
+//func (scCl *SCClient) Decrypt(r *onet.Roster, wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*DecryptReply, error) {
+func (scCl *SCClient) Decrypt(wrProof *byzcoin.Proof, rProof *byzcoin.Proof, key string, sk kyber.Scalar) (*DecryptReply, error) {
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
 		log.Errorf("Decrypt failed: %v", err)
@@ -210,14 +213,14 @@ func (scCl *SCClient) Decrypt(r *onet.Roster, wrProof *byzcoin.Proof, rProof *by
 	dr := &DecryptRequest{
 		Write: wrProof,
 		Read:  rProof,
-		SCID:  scCl.bcClient.ID,
+		SCID:  scCl.BcClient.ID,
 		Key:   key,
 		Sig:   sig,
 	}
-	dest := r.List[0]
-	log.Lvl3("Sending message to", dest)
+	//dest := r.List[0]
+	//log.Lvl3("Sending message to", dest)
 	reply := &DecryptReply{}
-	err = scCl.c.SendProtobuf(dest, dr, reply)
+	err = scCl.c.SendProtobuf(scCl.BcClient.Roster.List[0], dr, reply)
 	if err != nil {
 		log.Errorf("Decrypt failed: %v", err)
 		return nil, err

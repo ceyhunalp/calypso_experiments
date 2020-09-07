@@ -32,7 +32,8 @@ func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, interval int) err
 	if err != nil {
 		return err
 	}
-	reply, err := scCl.StoreData(r, wd.Data, wd.DataHash)
+	//reply, err := scCl.StoreData(r, wd.Data, wd.DataHash)
+	reply, err := scCl.StoreData(wd.Data, wd.DataHash)
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,8 @@ func runSemiCentralized(r *onet.Roster, serverKey kyber.Point, interval int) err
 	//return errors.New("Read inclusion proof does not match")
 	//}
 
-	dr, err := scCl.Decrypt(r, &wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
+	//dr, err := scCl.Decrypt(r, &wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
+	dr, err := scCl.Decrypt(&wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
 	if err != nil {
 		return err
 	}

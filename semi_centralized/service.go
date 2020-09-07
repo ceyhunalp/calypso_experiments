@@ -26,7 +26,6 @@ import (
 var templateID onet.ServiceID
 
 func init() {
-	log.Print("init in service")
 	var err error
 	templateID, err = onet.RegisterNewService(ServiceName, newSemiCentralizedService)
 	log.ErrFatal(err)
@@ -156,20 +155,17 @@ func verifyDecryptRequest(req *DecryptRequest, storedData *StoreRequest, sk kybe
 
 // saves all data.
 func (s *Service) save() {
-	log.Print("In save")
 	s.storage.Lock()
 	defer s.storage.Unlock()
 	err := s.Save(storageID, s.storage)
 	if err != nil {
 		log.Error("Couldn't save data:", err)
 	}
-	log.Print("Exiting save")
 }
 
 // Tries to load the configuration and updates the data in the service
 // if it finds a valid config-file.
 func (s *Service) tryLoad() error {
-	log.Print("In tryLoad")
 	s.storage = &storage{}
 	//defer func() {
 	//if s.storage.Suite == nil {
@@ -188,7 +184,6 @@ func (s *Service) tryLoad() error {
 	if !ok {
 		return errors.New("Data of wrong type")
 	}
-	log.Print("Exiting tryLoad")
 	return nil
 }
 
@@ -196,21 +191,17 @@ func (s *Service) tryLoad() error {
 // running on. Saving and loading can be done using the context. The data will
 // be stored in memory for tests and simulations, and on disk for real deployments.
 func newSemiCentralizedService(c *onet.Context) (onet.Service, error) {
-	log.Print("In NewSemiCentralizedService")
 	db, bucket := c.GetAdditionalBucket([]byte("semicentralizedtransactions"))
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
 		db:               NewSemiCentralizedDB(db, bucket),
 	}
-	log.Print("Registering handlers")
 	if err := s.RegisterHandlers(s.StoreData, s.Decrypt); err != nil {
 		return nil, errors.New("Couldn't register messages")
 	}
-	log.Print("Trying to load")
 	if err := s.tryLoad(); err != nil {
 		log.Error(err)
 		return nil, err
 	}
-	log.Print("Returning from NewSemiCentralizedService")
 	return s, nil
 }

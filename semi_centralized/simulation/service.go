@@ -5,13 +5,16 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 	sc "github.com/ceyhunalp/calypso_experiments/semi_centralized"
 	"github.com/ceyhunalp/calypso_experiments/util"
 	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/darc"
 	"github.com/dedis/kyber"
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
@@ -25,9 +28,7 @@ import (
 const DATA_SIZE = 1024 * 1024
 const FIXED_COUNT int = 10
 
-func init() {
-	onet.SimulationRegister("Semi", NewSemiCentralizedService)
-}
+var wg sync.WaitGroup
 
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
@@ -38,6 +39,11 @@ type SimulationService struct {
 	NumReadTransactions  int
 	NumBlocks            int
 	BlockInterval        int
+	BlockWait            int
+}
+
+func init() {
+	onet.SimulationRegister("Semi", NewSemiCentralizedService)
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -130,7 +136,8 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig, ser
 		}
 		awt := monitor.NewTimeMeasure("AddWriteTxn")
 		for i := 0; i < s.BatchSize; i++ {
-			reply, err := scCl.StoreData(config.Roster, wdList[i].Data, wdList[i].DataHash)
+			//reply, err := scCl.StoreData(config.Roster, wdList[i].Data, wdList[i].DataHash)
+			reply, err := scCl.StoreData(wdList[i].Data, wdList[i].DataHash)
 			if err != nil {
 				return err
 			}
@@ -191,7 +198,8 @@ func (s *SimulationService) runMicrobenchmark(config *onet.SimulationConfig, ser
 
 		decReq := monitor.NewTimeMeasure("DecRequest")
 		for i := 0; i < s.BatchSize; i++ {
-			dr, err := scCl.Decrypt(config.Roster, wrProofList[i], readProofList[i], wdList[i].StoredKey, reader.Ed25519.Secret)
+			//dr, err := scCl.Decrypt(config.Roster, wrProofList[i], readProofList[i], wdList[i].StoredKey, reader.Ed25519.Secret)
+			dr, err := scCl.Decrypt(wrProofList[i], readProofList[i], wdList[i].StoredKey, reader.Ed25519.Secret)
 			if err != nil {
 				return err
 			}
@@ -459,7 +467,8 @@ func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig, s
 		}
 	}
 	for i := 0; i < FIXED_COUNT; i++ {
-		reply, err := scCl.StoreData(config.Roster, fixedWdList[i].Data, fixedWdList[i].DataHash)
+		//reply, err := scCl.StoreData(config.Roster, fixedWdList[i].Data, fixedWdList[i].DataHash)
+		reply, err := scCl.StoreData(fixedWdList[i].Data, fixedWdList[i].DataHash)
 		if err != nil {
 			return err
 		}
@@ -521,7 +530,8 @@ func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig, s
 				}
 				if txnList[txnIdx] == 1 {
 					// WRITE TXN
-					reply, err := scCl.StoreData(config.Roster, wdList[writeIdx].Data, wdList[writeIdx].DataHash)
+					//reply, err := scCl.StoreData(config.Roster, wdList[writeIdx].Data, wdList[writeIdx].DataHash)
+					reply, err := scCl.StoreData(wdList[writeIdx].Data, wdList[writeIdx].DataHash)
 					if err != nil {
 						return err
 					}
@@ -568,7 +578,8 @@ func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig, s
 					return errors.New("Read inclusion proof does not match")
 				}
 				readProofList[readIdx-j] = &rProof
-				dr, err := scCl.Decrypt(config.Roster, fixedProofList[(readIdx-j)%FIXED_COUNT], readProofList[readIdx-j], fixedWdList[(readIdx-j)%FIXED_COUNT].StoredKey, reader.Ed25519.Secret)
+				//dr, err := scCl.Decrypt(config.Roster, fixedProofList[(readIdx-j)%FIXED_COUNT], readProofList[readIdx-j], fixedWdList[(readIdx-j)%FIXED_COUNT].StoredKey, reader.Ed25519.Secret)
+				dr, err := scCl.Decrypt(fixedProofList[(readIdx-j)%FIXED_COUNT], readProofList[readIdx-j], fixedWdList[(readIdx-j)%FIXED_COUNT].StoredKey, reader.Ed25519.Secret)
 				if err != nil {
 					return err
 				}
@@ -586,6 +597,166 @@ func (s *SimulationService) runByzgenSimulation(config *onet.SimulationConfig, s
 	return nil
 }
 
+func (s *SimulationService) runMultiClientSimulation(config *onet.SimulationConfig, serverPk kyber.Point) error {
+	dList := make([][]byte, s.NumTransactions)
+	wdList := make([]*util.WriteData, s.NumTransactions)
+	writeTxnList := make([]*sc.TransactionReply, s.NumTransactions)
+	wrProofList := make([]*byzcoin.Proof, s.NumTransactions)
+
+	for round := 0; round < s.Rounds; round++ {
+		log.Lvl1("Starting round", round)
+		byzCl, admin, gDarc, err := sc.SetupByzcoin(config.Roster, s.BlockInterval)
+		if err != nil {
+			log.Errorf("Setting up Byzcoin failed: %v", err)
+			return err
+		}
+		scCl := sc.NewClient(byzCl)
+		writer, reader, wDarc, err := scCl.SetupDarcs()
+		if err != nil {
+			return err
+		}
+		_, err = scCl.SpawnDarc(admin, *wDarc, gDarc, 4)
+		if err != nil {
+			return err
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			data := make([]byte, DATA_SIZE)
+			rand.Read(data)
+			dList[i] = data
+			wdList[i], err = util.CreateWriteData(data, reader.Ed25519.Point, serverPk, true)
+			if err != nil {
+				return err
+			}
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			//reply, err := scCl.StoreData(config.Roster, wdList[i].Data, wdList[i].DataHash)
+			reply, err := scCl.StoreData(wdList[i].Data, wdList[i].DataHash)
+			if err != nil {
+				return err
+			}
+			wdList[i].StoredKey = reply.StoredKey
+		}
+		for i := 0; i < s.NumTransactions; i++ {
+			wait := 0
+			if i == s.NumTransactions-1 {
+				wait = s.BlockWait
+			}
+			writeTxnList[i], err = scCl.AddWriteTransaction(wdList[i], writer, *wDarc, wait)
+			if err != nil {
+				return err
+			}
+		}
+
+		for i := 0; i < s.NumTransactions; i++ {
+			wrProofResponse, err := scCl.GetProof(writeTxnList[i].InstanceID)
+			if err != nil {
+				return err
+			}
+			wrProof := wrProofResponse.Proof
+			if !wrProof.InclusionProof.Match() {
+				return errors.New("Write inclusion proof does not match")
+			}
+			wrProofList[i] = &wrProof
+		}
+		wg.Add(s.NumTransactions)
+		for i := 0; i < s.NumTransactions; i++ {
+			byzCl := byzcoin.NewClient(scCl.BcClient.ID, scCl.BcClient.Roster)
+			go func(idx int, cl *byzcoin.Client) {
+				err := decrypt(idx, cl, wdList[idx], wrProofList[idx], reader, wDarc, dList[idx], s.BlockWait)
+				if err != nil {
+					log.Errorf("goroutine %d error: %v", idx, err)
+				}
+			}(i, byzCl)
+		}
+		wg.Wait()
+		log.Info("goroutines are finished")
+
+		//art := monitor.NewTimeMeasure("AddReadTxn")
+		//for i := 0; i < s.NumTransactions; i++ {
+		//wait := 0
+		//if i == s.NumTransactions-1 {
+		//wait = 3
+		//}
+		//readTxnList[i], err = scCl.AddReadTransaction(wrProofList[i], reader, *wDarc, wait)
+		//if err != nil {
+		//return err
+		//}
+		//}
+		//art.Record()
+
+		//rwp := monitor.NewTimeMeasure("ReadGetProof")
+		//for i := 0; i < s.NumTransactions; i++ {
+		//rProofResponse, err := scCl.GetProof(readTxnList[i].InstanceID)
+		//if err != nil {
+		//return err
+		//}
+		//rProof := rProofResponse.Proof
+		//if !rProof.InclusionProof.Match() {
+		//return errors.New("Read inclusion proof does not match")
+		//}
+		//readProofList[i] = &rProof
+		//}
+		//rwp.Record()
+
+		//decReq := monitor.NewTimeMeasure("DecRequest")
+		//for i := 0; i < s.NumTransactions; i++ {
+		//dr, err := scCl.Decrypt(config.Roster, wrProofList[i], readProofList[i], wdList[i].StoredKey, reader.Ed25519.Secret)
+		//if err != nil {
+		//return err
+		//}
+		//data, err := util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
+		//if err != nil {
+		//return err
+		//}
+		//log.Info("Data recovered:", bytes.Equal(data, dList[i]))
+		//}
+		//decReq.Record()
+	}
+	return nil
+}
+
+func decrypt(idx int, bc *byzcoin.Client, wd *util.WriteData, wrProof *byzcoin.Proof, reader darc.Signer, wDarc *darc.Darc, d []byte, wait int) error {
+	defer wg.Done()
+	scCl := sc.NewClient(bc)
+	label := fmt.Sprintf("Client_%d_read", idx+1)
+
+	readMonitor := monitor.NewTimeMeasure(label)
+	re, err := scCl.AddReadTransaction(wrProof, reader, *wDarc, wait)
+	if err != nil {
+		log.Errorf("Read transaction failed @%d: %v", idx, err)
+		return err
+	}
+	rProofResponse, err := scCl.GetProof(re.InstanceID)
+	if err != nil {
+		log.Errorf("Getting proof failed @%d: %v", idx, err)
+		return err
+	}
+	rProof := rProofResponse.Proof
+	if !rProof.InclusionProof.Match() {
+		log.Errorf("Read inclusion proof does not match error @%d", idx)
+		return errors.New("Read inclusion proof does not match")
+	}
+	readMonitor.Record()
+
+	label = fmt.Sprintf("Client_%d_decrypt", idx+1)
+
+	decMonitor := monitor.NewTimeMeasure(label)
+	dr, err := scCl.Decrypt(wrProof, &rProof, wd.StoredKey, reader.Ed25519.Secret)
+	if err != nil {
+		return err
+	}
+	data, err := util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
+	if err != nil {
+		return err
+	}
+	decMonitor.Record()
+
+	if !bytes.Equal(data, d) {
+		return errors.New("Incorrect decryption")
+	}
+	return nil
+}
+
 // Run is used on the destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
@@ -594,8 +765,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	size := config.Tree.Size()
 	log.Info("Size of the tree:", size)
 
-	//err := s.runByzgenSimulation(config, serverPk)
-	err := s.runMicrobenchmark(config, serverPk)
+	err := s.runMultiClientSimulation(config, serverPk)
+
 	if err != nil {
 		log.Info("Simulation error:", err)
 		return err

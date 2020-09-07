@@ -36,10 +36,6 @@ type ByzcoinData struct {
 	Csr    *byzcoin.CreateGenesisBlockResponse
 }
 
-func init() {
-	onet.SimulationRegister("Calypso", NewCalypsoService)
-}
-
 // SimulationService only holds the BFTree simulation
 type SimulationService struct {
 	onet.SimulationBFTree
@@ -49,6 +45,10 @@ type SimulationService struct {
 	NumBlocks            int
 	BlockInterval        int
 	BlockWait            int
+}
+
+func init() {
+	onet.SimulationRegister("Calypso", NewCalypsoService)
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -392,12 +392,12 @@ func decrypt(idx int, bc *byzcoin.Client, X kyber.Point, key [16]byte, wProof *b
 	readMonior := monitor.NewTimeMeasure(label)
 	re, err := cc.AddRead(wProof, reader, *wDarc, wait)
 	if err != nil {
-		log.Errorf("AddRead error @%d: %v", idx, err)
+		log.Errorf("Read transaction failed @%d: %v", idx, err)
 		return err
 	}
 	rProofResponse, err := bc.GetProof(re.InstanceID.Slice())
 	if err != nil {
-		log.Errorf("GetProof error @%d: %v", idx, err)
+		log.Errorf("Getting proof failed @%d: %v", idx, err)
 		return err
 	}
 	rProof := rProofResponse.Proof
@@ -417,15 +417,15 @@ func decrypt(idx int, bc *byzcoin.Client, X kyber.Point, key [16]byte, wProof *b
 	decMonitor := monitor.NewTimeMeasure(label)
 	dk, err := cc.DecryptKey(&calypso.DecryptKey{Read: rProof, Write: *wProof})
 	if err != nil {
-		log.Errorf("DecryptKey error @%d: %v", idx, err)
+		log.Errorf("Decrypting key failed @%d: %v", idx, err)
 		return err
 	}
-	decMonitor.Record()
-
 	decodedKey, err := calypso.DecodeKey(cothority.Suite, X, dk.Cs, dk.XhatEnc, reader.Ed25519.Secret)
 	if err != nil {
 		return err
 	}
+	decMonitor.Record()
+
 	if !bytes.Equal(decodedKey, key[:]) {
 		return errors.New("Keys don't match")
 	}
