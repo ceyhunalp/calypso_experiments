@@ -32,24 +32,23 @@ def readFile(fname, isUser):
             match_idxs[cliNum] = val
 
     if isUser:
-        print("label, read_user_sum, decrypt_user_sum")
+        print("label, read_user_sum, decrypt_user_sum, total")
     else:
-        print("label, read_wall_sum, decrypt_wall_sum")
+        print("label, read_wall_sum, decrypt_wall_sum, total")
 
-    line_cnt = 0
     for line in fd:
-        line_cnt += 1
         tokens = line.split(',')
         for k,v in sorted(match_idxs.items()):
-            # print("%s,%s,%s" % (names[k], tokens[v[0]], tokens[v[1]]))
             v1 = tokens[v[0]]
             v2 = tokens[v[1]]
             tot = float(v1) + float(v2)
             tot_str = "%.6f" % tot
-            # out_lines[k] = [tokens[v[0]], tokens[v[1]]]
-            # out_lines[k] = [v1, v2, str(tot)]
-            out_lines[k] = [v1, v2, tot_str]
-
+            if k not in out_lines:
+                out_lines[k] = [v1, v2, tot_str]
+            else:
+                val = out_lines[k]
+                val.extend([v1, v2, tot_str])
+                out_lines[k] = val
 
     for k,v in sorted(out_lines.items()):
         tmp = ','.join(v)

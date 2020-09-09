@@ -28,6 +28,8 @@ func init() {
 type SimulationService struct {
 	onet.SimulationBFTree
 	NumTransactions int
+	BlockInterval   int
+	BlockWait       int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -75,7 +77,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
-		byzd, err := tournament.SetupByzcoin(config.Roster)
+		byzd, err := tournament.SetupByzcoin(config.Roster, s.BlockInterval)
 		numTransactions := s.NumTransactions
 		numRounds := int(math.Ceil(math.Log2(float64(numTransactions))))
 		numTransactionsLeft := numTransactions
@@ -98,8 +100,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			for i := 0; i < numTransactionsLeft; i++ {
 				lotteryData[i] = tournament.CreateLotteryData()
 				if i == numTransactionsLeft-1 {
-					wait = 3
-					//wait = 1
+					wait = s.BlockWait
 				}
 				log.Lvl1("[TournamentLottery] AddCommit called")
 				commitTxnList[i], err = byzd.AddCommitTransaction(lotteryData[i], wait)
@@ -130,8 +131,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 			trt := monitor.NewTimeMeasure("tournament_reveal")
 			for i := 0; i < numTransactionsLeft; i++ {
 				if i == numTransactionsLeft-1 {
-					//wait = 1
-					wait = 3
+					wait = s.BlockWait
 				}
 				log.Lvl1("[TournametLottery] AddSecret called")
 				secretTxnList[i], err = byzd.AddSecretTransaction(lotteryData[i], wait)

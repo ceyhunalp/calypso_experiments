@@ -1,13 +1,18 @@
 Simulation = "Calypso"
-Servers = 4
+Servers = 1
 Bf = 9
 Rounds = 1
-RunWait =  "24000s"
+RunWait =  "600s"
 Delay = 100
 Bandwidth = 100
 Suite = "Ed25519"
 BlockInterval  = 10
 BlockWait = 10
+DebugTime = true
 
 Hosts, NumTransactions
-10, 100
+10, 500
+10, 500
+10, 500
+10, 500
+10, 500

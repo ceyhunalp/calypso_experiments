@@ -185,7 +185,7 @@ func CreateLotteryData() *LotteryData {
 	return ld
 }
 
-func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
+func SetupByzcoin(r *onet.Roster, blockInterval int) (*ByzcoinData, error) {
 	var err error
 	byzd := &ByzcoinData{}
 	byzd.Signer = darc.NewSignerEd25519(nil, nil)
@@ -194,9 +194,8 @@ func SetupByzcoin(r *onet.Roster) (*ByzcoinData, error) {
 		log.Errorf("SetupByzcoin error: %v", err)
 		return nil, err
 	}
-	byzd.GMsg.BlockInterval = 5 * time.Second
-	//byzd.GMsg.BlockInterval = 15 * time.Second
-	//byzd.GMsg.BlockInterval = 10 * time.Second
+	//byzd.GMsg.BlockInterval = 5 * time.Second
+	byzd.GMsg.BlockInterval = time.Duration(blockInterval) * time.Second
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
 	if err != nil {

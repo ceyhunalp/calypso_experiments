@@ -2,6 +2,7 @@
 *.iml
 .tags*
 
+/**/server_list
 /**/simulation
 /**/deploy/
 /**/build/

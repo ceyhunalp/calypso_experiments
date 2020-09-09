@@ -564,5 +564,6 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		log.Info("Returned with error:", err)
 		return err
 	}
+	time.Sleep(15 * time.Second)
 	return nil
 }

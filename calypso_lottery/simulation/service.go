@@ -26,6 +26,8 @@ type SimulationService struct {
 	onet.SimulationBFTree
 	NumTransactions int
 	NumLotteries    int
+	BlockWait       int
+	BlockInterval   int
 }
 
 // NewSimulationService returns the new simulation, where all fields are
@@ -65,13 +67,18 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 }
 
 func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) error {
+	byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
+	if err != nil {
+		log.Errorf("Setting up Byzcoin failed: %v", err)
+		return err
+	}
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
-		byzd, err := lottery.SetupByzcoin(config.Roster)
-		if err != nil {
-			log.Errorf("Setting up Byzcoin failed: %v", err)
-			return err
-		}
+		//byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
+		//if err != nil {
+		//log.Errorf("Setting up Byzcoin failed: %v", err)
+		//return err
+		//}
 		calypsoClient := calypso.NewClient(byzd.Cl)
 		ltsReply, err := calypsoClient.CreateLTS()
 		if err != nil {
@@ -86,8 +93,7 @@ func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) err
 		wait := 0
 		for i := 0; i < numTransactions; i++ {
 			if i == numTransactions-1 {
-				wait = 3
-				//wait = 1
+				wait = s.BlockWait
 			}
 			_, err := byzd.SpawnDarc(*writeDarcList[i], wait)
 			if err != nil {
@@ -107,8 +113,7 @@ func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) err
 		wt := monitor.NewTimeMeasure("calylot_write")
 		for i := 0; i < numTransactions; i++ {
 			if i == numTransactions-1 {
-				wait = 3
-				//wait = 1
+				wait = s.BlockWait
 			}
 			log.Lvlf1("[CalypsoLottery] AddWrite called")
 			writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], wait)
@@ -139,8 +144,7 @@ func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) err
 			batchData[i] = &calypso.BatchData{Proof: &writeProofList[i], Signer: reader, Darc: *writeDarcList[i]}
 		}
 
-		wait = 3
-		//wait = 1
+		wait = s.BlockWait
 		read_mon := monitor.NewTimeMeasure("read_batch")
 		readBatchReply, err := calypsoClient.AddReadBatch(batchData, wait)
 		if err != nil {
@@ -209,7 +213,7 @@ func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) err
 	log.Info("Total # of rounds is:", s.Rounds)
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
-		byzd, err := lottery.SetupByzcoin(config.Roster)
+		byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
 		if err != nil {
 			log.Errorf("Setting up Byzcoin failed: %v", err)
 			return err
@@ -229,8 +233,7 @@ func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) err
 		wait := 0
 		for i := 0; i < numTransactions; i++ {
 			if i == numTransactions-1 {
-				wait = 3
-				//wait = 1
+				wait = s.BlockWait
 			}
 			_, err := byzd.SpawnDarc(*writeDarcList[i], wait)
 			if err != nil {
@@ -251,8 +254,7 @@ func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) err
 		wt := monitor.NewTimeMeasure("calylot_write")
 		for i := 0; i < numTransactions; i++ {
 			if i == numTransactions-1 {
-				wait = 3
-				//wait = 1
+				wait = s.BlockWait
 			}
 			log.Lvlf1("[CalypsoLottery] AddWrite called")
 			writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], wait)
@@ -283,8 +285,7 @@ func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) err
 		clr := monitor.NewTimeMeasure("calylot_read")
 		for i := 0; i < numTransactions; i++ {
 			if i == numTransactions-1 {
-				wait = 3
-				//wait = 1
+				wait = s.BlockWait
 			}
 			log.Lvl1("[CalypsoLottery] AddRead called")
 			readTxnList[i], err = calypsoClient.AddRead(&writeProofList[i], reader, *writeDarcList[i], wait)
@@ -358,7 +359,7 @@ func (s *SimulationService) runMultipleLottery(config *onet.SimulationConfig, by
 	wait := 0
 	for i := 0; i < numTransactions; i++ {
 		if i == numTransactions-1 {
-			wait = 3
+			wait = s.BlockWait
 		}
 		_, err := byzd.SpawnDarc(*writeDarcList[i], wait)
 		if err != nil {

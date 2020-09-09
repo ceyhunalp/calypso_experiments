@@ -615,7 +615,7 @@ func (s *SimulationService) runMultiClientSimulation(config *onet.SimulationConf
 		if err != nil {
 			return err
 		}
-		_, err = scCl.SpawnDarc(admin, *wDarc, gDarc, 4)
+		_, err = scCl.SpawnDarc(admin, *wDarc, gDarc, s.BlockWait)
 		if err != nil {
 			return err
 		}
@@ -670,47 +670,6 @@ func (s *SimulationService) runMultiClientSimulation(config *onet.SimulationConf
 		}
 		wg.Wait()
 		log.Info("goroutines are finished")
-
-		//art := monitor.NewTimeMeasure("AddReadTxn")
-		//for i := 0; i < s.NumTransactions; i++ {
-		//wait := 0
-		//if i == s.NumTransactions-1 {
-		//wait = 3
-		//}
-		//readTxnList[i], err = scCl.AddReadTransaction(wrProofList[i], reader, *wDarc, wait)
-		//if err != nil {
-		//return err
-		//}
-		//}
-		//art.Record()
-
-		//rwp := monitor.NewTimeMeasure("ReadGetProof")
-		//for i := 0; i < s.NumTransactions; i++ {
-		//rProofResponse, err := scCl.GetProof(readTxnList[i].InstanceID)
-		//if err != nil {
-		//return err
-		//}
-		//rProof := rProofResponse.Proof
-		//if !rProof.InclusionProof.Match() {
-		//return errors.New("Read inclusion proof does not match")
-		//}
-		//readProofList[i] = &rProof
-		//}
-		//rwp.Record()
-
-		//decReq := monitor.NewTimeMeasure("DecRequest")
-		//for i := 0; i < s.NumTransactions; i++ {
-		//dr, err := scCl.Decrypt(config.Roster, wrProofList[i], readProofList[i], wdList[i].StoredKey, reader.Ed25519.Secret)
-		//if err != nil {
-		//return err
-		//}
-		//data, err := util.RecoverData(dr.Data, reader.Ed25519.Secret, dr.K, dr.C)
-		//if err != nil {
-		//return err
-		//}
-		//log.Info("Data recovered:", bytes.Equal(data, dList[i]))
-		//}
-		//decReq.Record()
 	}
 	return nil
 }
@@ -762,8 +721,8 @@ func decrypt(idx int, bc *byzcoin.Client, wd *util.WriteData, wrProof *byzcoin.P
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	log.Info("Total # of rounds is:", s.Rounds)
 	serverPk := config.Roster.Publics()[0]
-	size := config.Tree.Size()
-	log.Info("Size of the tree:", size)
+	//size := config.Tree.Size()
+	//log.Info("Size of the tree:", size)
 
 	err := s.runMultiClientSimulation(config, serverPk)
 
