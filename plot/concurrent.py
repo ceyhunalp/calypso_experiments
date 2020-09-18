@@ -54,9 +54,9 @@ for xx in x:
 
 # y_ticks = ['0.1','1','10','100']
 
-plt.axes().set_xticks(x[:])
-plt.axes().set_xticklabels(x_ticks)
+plt.xticks(x_ticks)
+# plt.axes().set_xticks(x[:])
+# plt.axes().set_xticklabels(x_ticks)
 # plt.gca().set_yticklabels(y_ticks)
 # plt.yscale('log')
-plt.show()
 save("concurrent.eps")
