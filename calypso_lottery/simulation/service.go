@@ -67,18 +67,13 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 }
 
 func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) error {
-	byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
-	if err != nil {
-		log.Errorf("Setting up Byzcoin failed: %v", err)
-		return err
-	}
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
-		//byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
-		//if err != nil {
-		//log.Errorf("Setting up Byzcoin failed: %v", err)
-		//return err
-		//}
+		byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
+		if err != nil {
+			log.Errorf("Setting up Byzcoin failed: %v", err)
+			return err
+		}
 		calypsoClient := calypso.NewClient(byzd.Cl)
 		ltsReply, err := calypsoClient.CreateLTS()
 		if err != nil {
@@ -115,7 +110,7 @@ func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) err
 			if i == numTransactions-1 {
 				wait = s.BlockWait
 			}
-			log.Lvlf1("[CalypsoLottery] AddWrite called")
+			//log.Lvlf1("[CalypsoLottery] AddWrite called")
 			writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], wait)
 			if err != nil {
 				log.Errorf("AddWrite failed: %v", err)
@@ -210,7 +205,6 @@ func (s *SimulationService) runBatchedLottery(config *onet.SimulationConfig) err
 }
 
 func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) error {
-	log.Info("Total # of rounds is:", s.Rounds)
 	for round := 0; round < s.Rounds; round++ {
 		log.Lvl1("Starting round", round)
 		byzd, err := lottery.SetupByzcoin(config.Roster, s.BlockInterval)
@@ -256,7 +250,7 @@ func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) err
 			if i == numTransactions-1 {
 				wait = s.BlockWait
 			}
-			log.Lvlf1("[CalypsoLottery] AddWrite called")
+			//log.Lvlf1("[CalypsoLottery] AddWrite called")
 			writeTxnList[i], err = calypsoClient.AddWrite(writeTxnData[i], writerList[i], *writeDarcList[i], wait)
 			if err != nil {
 				log.Errorf("AddWrite failed: %v", err)
@@ -287,7 +281,7 @@ func (s *SimulationService) runCalypsoLottery(config *onet.SimulationConfig) err
 			if i == numTransactions-1 {
 				wait = s.BlockWait
 			}
-			log.Lvl1("[CalypsoLottery] AddRead called")
+			//log.Lvl1("[CalypsoLottery] AddRead called")
 			readTxnList[i], err = calypsoClient.AddRead(&writeProofList[i], reader, *writeDarcList[i], wait)
 			if err != nil {
 				log.Errorf("AddRead failed: %v", err)
@@ -538,17 +532,4 @@ func (s *SimulationService) runMultipleLottery(config *onet.SimulationConfig, by
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	return s.runBatchedLottery(config)
 	//return s.runCalypsoLottery(config)
-
-	//byzd, err := lottery.SetupByzcoin(config.Roster)
-	//if err != nil {
-	//log.Errorf("Setting up Byzcoin failed: %v", err)
-	//return err
-	//}
-	//mlt := monitor.NewTimeMeasure("multiple_lottery")
-	//for i := 1; i < s.NumLotteries; i++ {
-	//go s.runMultipleLottery(config, byzd)
-	//}
-	//s.runMultipleLottery(config, byzd)
-	//mlt.Record()
-	//return nil
 }

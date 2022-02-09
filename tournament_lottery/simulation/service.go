@@ -72,11 +72,11 @@ func (s *SimulationService) Node(config *onet.SimulationConfig) error {
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 	log.Info("Total # of rounds is:", s.Rounds)
-	size := config.Tree.Size()
-	log.Info("Size of the tree:", size)
+	//size := config.Tree.Size()
+	//log.Info("Size of the tree:", size)
 
 	for round := 0; round < s.Rounds; round++ {
-		log.Lvl1("Starting round", round)
+		log.Info("Starting run", round)
 		byzd, err := tournament.SetupByzcoin(config.Roster, s.BlockInterval)
 		numTransactions := s.NumTransactions
 		numRounds := int(math.Ceil(math.Log2(float64(numTransactions))))
@@ -87,8 +87,8 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		}
 
 		isOdd := false
-		fmt.Println("Number of rounds is:", numRounds)
 		for i := 0; i < numRounds; i++ {
+			log.Info("Starting lottery round", i)
 			if numTransactionsLeft%2 != 0 {
 				numTransactionsLeft -= 1
 				isOdd = true
@@ -102,7 +102,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 				if i == numTransactionsLeft-1 {
 					wait = s.BlockWait
 				}
-				log.Lvl1("[TournamentLottery] AddCommit called")
+				//log.Lvl1("[TournamentLottery] AddCommit called")
 				commitTxnList[i], err = byzd.AddCommitTransaction(lotteryData[i], wait)
 				if err != nil {
 					log.Errorf("AddCommitTransaction failed: %v", err)
@@ -133,7 +133,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 				if i == numTransactionsLeft-1 {
 					wait = s.BlockWait
 				}
-				log.Lvl1("[TournametLottery] AddSecret called")
+				//log.Lvl1("[TournametLottery] AddSecret called")
 				secretTxnList[i], err = byzd.AddSecretTransaction(lotteryData[i], wait)
 				if err != nil {
 					log.Errorf("AddSecretTransaction failed: %v", err)
@@ -211,7 +211,7 @@ func (s *SimulationService) Run(config *onet.SimulationConfig) error {
 		}
 		for i := 0; i < numTransactions; i++ {
 			if participantList[i] == 1 {
-				fmt.Println("Winner is", i)
+				log.Info("Winner is", i)
 				break
 			}
 		}

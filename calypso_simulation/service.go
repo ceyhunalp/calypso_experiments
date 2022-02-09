@@ -124,7 +124,6 @@ func setupByzcoin(r *onet.Roster, blockInterval int) (*ByzcoinData, error) {
 		log.Errorf("SetupByzcoin error: %v", err)
 		return nil, err
 	}
-	// TODO: 3-4 seconds block interval
 	byzd.GMsg.BlockInterval = time.Duration(blockInterval) * time.Second
 	byzd.GDarc = &byzd.GMsg.GenesisDarc
 	byzd.Cl, _, err = byzcoin.NewLedger(byzd.GMsg, false)
@@ -453,7 +452,8 @@ func (s *SimulationService) runMultiClientCalypso(config *onet.SimulationConfig)
 		if err != nil {
 			return err
 		}
-		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 3)
+		//_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, 3)
+		_, err = calypsoClient.SpawnDarc(byzd.Signer, *byzd.GDarc, *writeDarc, s.BlockWait)
 		if err != nil {
 			return err
 		}
@@ -555,15 +555,15 @@ func countTransactions(txnList []int, base int, sz int) (int, int) {
 // Run is used on ehe destination machines and runs a number of
 // rounds
 func (s *SimulationService) Run(config *onet.SimulationConfig) error {
-	size := config.Tree.Size()
-	log.Lvl2("Size is:", size, "rounds:", s.Rounds)
-	log.Info("Roster size is:", len(config.Roster.List))
+	//size := config.Tree.Size()
+	//log.Lvl2("Size is:", size, "rounds:", s.Rounds)
+	//log.Info("Roster size is:", len(config.Roster.List))
 
 	err := s.runMultiClientCalypso(config)
 	if err != nil {
 		log.Info("Returned with error:", err)
 		return err
 	}
-	time.Sleep(15 * time.Second)
+	time.Sleep(10 * time.Second)
 	return nil
 }
